@@ -2,6 +2,7 @@ package tr.com.kadiraydemir.orekit.grpc;
 
 import io.quarkus.grpc.GrpcService;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.infrastructure.Infrastructure;
 import jakarta.inject.Inject;
 import tr.com.kadiraydemir.orekit.mapper.PropagationMapper;
 import tr.com.kadiraydemir.orekit.service.PropagationService;
@@ -17,11 +18,13 @@ public class PropagationGrpcService implements OrbitalService {
 
     @Override
     public Uni<PropagateResponse> propagate(PropagateRequest request) {
-        return Uni.createFrom().item(() -> propagationMapper.map(propagationService.propagate(request)));
+        return Uni.createFrom().item(() -> propagationMapper.map(propagationService.propagate(request)))
+                .runSubscriptionOn(Infrastructure.getDefaultWorkerPool());
     }
 
     @Override
     public Uni<TLEPropagateResponse> propagateTLE(TLEPropagateRequest request) {
-        return Uni.createFrom().item(() -> propagationMapper.map(propagationService.propagateTLE(request)));
+        return Uni.createFrom().item(() -> propagationMapper.map(propagationService.propagateTLE(request)))
+                .runSubscriptionOn(Infrastructure.getDefaultWorkerPool());
     }
 }
