@@ -14,7 +14,7 @@ Built with [Quarkus](https://quarkus.io/), it provides a native (or JVM) microse
 
 ## Prerequisites
 
-- JDK 25+
+- JDK 21+
 - Maven 3.9+ (Wrapper included)
 - `orekit-data.zip`: Required for physical data (leap seconds, EOP). This repository expects `orekit-data.zip` in the project root.
 
@@ -72,7 +72,7 @@ docker run -p 8080:8080 orekit-grpc-wrapper
 
 ### Local Native Executable
 
-Requires [GraalVM 25+](https://www.graalvm.org/downloads/) installed locally:
+Requires [GraalVM 21+](https://www.graalvm.org/downloads/) installed locally:
 
 ```bash
 ./mvnw package -Dnative
