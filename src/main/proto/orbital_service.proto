@@ -1,0 +1,85 @@
+syntax = "proto3";
+
+package orbital;
+
+option java_multiple_files = true;
+option java_package = "tr.com.kadiraydemir.orekit.grpc";
+option java_outer_classname = "OrbitalServiceProto";
+
+// Propagation model selection
+enum PropagationModel {
+  AUTO = 0;      // Auto-select SGP4/SDP4 based on TLE period
+  SGP4 = 1;      // Force SGP4 (near-Earth objects)
+  SDP4 = 2;      // Force SDP4 (deep-space objects)
+  NUMERICAL = 3; // High-fidelity numerical propagator
+}
+
+// Integrator type for numerical propagation
+enum IntegratorType {
+  DORMAND_PRINCE_853 = 0;  // Default - 8th order with embedded 5th & 3rd order
+  DORMAND_PRINCE_54 = 1;   // 5th order with embedded 4th order
+  CLASSICAL_RUNGE_KUTTA = 2; // Classical 4th order Runge-Kutta
+  ADAMS_BASHFORTH = 3;     // Adams-Bashforth multi-step
+  ADAMS_MOULTON = 4;       // Adams-Moulton multi-step (implicit)
+  GRAGG_BULIRSCH_STOER = 5; // Gragg-Bulirsch-Stoer extrapolation
+}
+
+// Reference frame for output coordinates
+enum ReferenceFrame {
+  TEME = 0;   // True Equator Mean Equinox (default, native SGP4/SDP4 frame)
+  GCRF = 1;   // Geocentric Celestial Reference Frame
+  EME2000 = 2; // Earth Mean Equator and Equinox of J2000
+  ITRF = 3;   // International Terrestrial Reference Frame (Earth-fixed)
+}
+
+service OrbitalService {
+  rpc Propagate (PropagateRequest) returns (PropagateResponse) {}
+  rpc PropagateTLE (TLEPropagateRequest) returns (TLEPropagateResponse) {}
+}
+
+message PropagateRequest {
+  string satellite_name = 1;
+  double semimajor_axis = 2; // meters
+  double eccentricity = 3;
+  double inclination = 4; // radians
+  double perigee_argument = 5; // radians
+  double right_ascension_of_ascending_node = 6; // radians
+  double mean_anomaly = 7; // radians
+  string epoch_iso = 8; // ISO-8601 string, e.g. "2024-01-01T12:00:00Z"
+  double duration = 9; // seconds to propagate
+}
+
+message PropagateResponse {
+  string satellite_name = 1;
+  double pos_x = 2;
+  double pos_y = 3;
+  double pos_z = 4;
+  double vel_x = 5;
+  double vel_y = 6;
+  double vel_z = 7;
+  string final_date_iso = 8;
+  string frame_name = 9;
+}
+
+message TLEPropagateRequest {
+  PropagationModel model = 1;
+  string tle_line1 = 2;
+  string tle_line2 = 3;
+  string start_date = 4; // ISO-8601
+  string end_date = 5; // ISO-8601
+  int32 position_count = 6;
+  ReferenceFrame output_frame = 7; // Output reference frame (default: TEME)
+  IntegratorType integrator = 8;  // Integrator type for numerical model (ignored for SGP4/SDP4)
+}
+
+message PositionPoint {
+  double x = 1;
+  double y = 2;
+  double z = 3;
+  string timestamp = 4;
+}
+
+message TLEPropagateResponse {
+  repeated PositionPoint positions = 1;
+  string frame = 2; // Reference frame name (applies to all positions)
+}

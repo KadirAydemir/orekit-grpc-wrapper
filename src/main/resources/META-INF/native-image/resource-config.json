@@ -1,0 +1,18 @@
+{
+    "resources": {
+        "includes": [
+            {
+                "pattern": "orekit-data.zip"
+            },
+            {
+                "pattern": ".*\\.properties$"
+            },
+            {
+                "pattern": ".*\\.xml$"
+            },
+            {
+                "pattern": "META-INF/services/.*"
+            }
+        ]
+    }
+}

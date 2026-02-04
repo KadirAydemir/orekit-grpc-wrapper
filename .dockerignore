@@ -1,0 +1,25 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+*.iml
+.vscode
+.project
+.classpath
+.settings
+
+# Build outputs (we build inside container)
+target/
+
+# Documentation
+*.md
+!README.md
+
+# Gemini
+.gemini/
+
+# OS files
+.DS_Store
+Thumbs.db
