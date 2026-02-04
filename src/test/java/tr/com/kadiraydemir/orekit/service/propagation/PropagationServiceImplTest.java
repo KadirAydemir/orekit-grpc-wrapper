@@ -65,8 +65,9 @@ public class PropagationServiceImplTest {
         Multi<TleResult> resultMulti = propagationService.propagateTLE(request);
         List<TleResult> results = resultMulti.collect().asList().await().indefinitely();
 
-        Assertions.assertEquals(2, results.size());
-        Assertions.assertFalse(results.get(0).positions().isEmpty());
+        // With batch size 100 and 2 positions, we expect 1 result containing 2 positions
+        Assertions.assertEquals(1, results.size());
+        Assertions.assertEquals(2, results.get(0).positions().size());
     }
 
     @Test
@@ -80,5 +81,27 @@ public class PropagationServiceImplTest {
         Assertions.assertThrows(RuntimeException.class, () -> {
             resultMulti.collect().asList().await().indefinitely();
         });
+    }
+
+    @Test
+    public void testPropagateTLEBlockingSuccess() {
+        String line1 = "1 25544U 98067A   24001.00000000  .00016717  00000-0  10270-3 0  9991";
+        String line2 = "2 25544  51.6444  20.0000 0005000  0.0000  50.0000 15.50000000 10005";
+
+        TLEPropagateRequest request = TLEPropagateRequest.newBuilder()
+                .setTleLine1(line1)
+                .setTleLine2(line2)
+                .setStartDate("2024-01-01T12:00:00Z")
+                .setEndDate("2024-01-01T13:00:00Z")
+                .setPositionCount(1005) // Should produce 2 batches (1000 + 5)
+                .setOutputFrame(ReferenceFrame.TEME)
+                .build();
+
+        List<TleResult> results = new java.util.ArrayList<>();
+        propagationService.propagateTLEBlocking(request, results::add);
+
+        Assertions.assertEquals(2, results.size());
+        Assertions.assertEquals(1000, results.get(0).positions().size());
+        Assertions.assertEquals(5, results.get(1).positions().size());
     }
 }
