@@ -4,7 +4,7 @@
 # ============================================
 
 # Stage 1: Build with GraalVM Native Image
-FROM ghcr.io/graalvm/native-image-community:21 AS build
+FROM ghcr.io/graalvm/native-image-community:25 AS build
 
 USER root
 WORKDIR /app
@@ -27,7 +27,14 @@ COPY orekit-data.zip ./
 
 # Build native executable
 # -Dnative activates the native profile in pom.xml
-RUN ./mvnw package -Dnative -DskipTests -B
+# Resource limits for shared build servers (4 vCPU, 8GB RAM, 2 concurrent builds)
+# Each build gets: 2 CPUs, 3.5GB heap
+RUN ./mvnw package -Dnative -DskipTests -B \
+    -Dquarkus.native.additional-build-args="\
+    -J-Xmx3500m,\
+    -J-Xms1g,\
+    -J-XX:ActiveProcessorCount=2,\
+    --parallelism=2"
 
 # Stage 2: Runtime Image
 FROM registry.access.redhat.com/ubi9/ubi:latest
