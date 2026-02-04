@@ -1,4 +1,4 @@
-package tr.com.kadiraydemir.orekit.service;
+package tr.com.kadiraydemir.orekit.service.propagation;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;

@@ -1,4 +1,4 @@
-package tr.com.kadiraydemir.orekit.service;
+package tr.com.kadiraydemir.orekit.service.propagation;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -11,10 +11,12 @@ import org.orekit.propagation.Propagator;
 import org.orekit.propagation.analytical.KeplerianPropagator;
 import org.orekit.propagation.analytical.tle.TLE;
 import org.orekit.time.AbsoluteDate;
+import org.orekit.time.TimeScale;
 import org.orekit.time.TimeScalesFactory;
 import org.orekit.utils.Constants;
 import org.orekit.utils.PVCoordinates;
 import tr.com.kadiraydemir.orekit.grpc.*;
+import tr.com.kadiraydemir.orekit.service.frame.FrameService;
 import tr.com.kadiraydemir.orekit.model.OrbitResult;
 import tr.com.kadiraydemir.orekit.model.TleResult;
 
@@ -102,7 +104,7 @@ public class PropagationServiceImpl implements PropagationService {
             double timeStep = (positionCount > 1) ? duration / (positionCount - 1) : 0;
 
             String frameName = outputFrame.getName();
-            org.orekit.time.TimeScale utc = TimeScalesFactory.getUTC();
+            TimeScale utc = TimeScalesFactory.getUTC();
 
             return Multi.createFrom().range(0, positionCount)
                     .map(i -> {

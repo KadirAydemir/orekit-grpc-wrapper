@@ -1,4 +1,4 @@
-package tr.com.kadiraydemir.orekit.grpc;
+package tr.com.kadiraydemir.orekit.grpc.propagation;
 
 import io.quarkus.grpc.GrpcClient;
 import io.quarkus.test.junit.QuarkusTest;

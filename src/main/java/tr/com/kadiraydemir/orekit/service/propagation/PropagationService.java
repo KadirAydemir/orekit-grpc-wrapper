@@ -1,4 +1,4 @@
-package tr.com.kadiraydemir.orekit.service;
+package tr.com.kadiraydemir.orekit.service.propagation;
 
 import tr.com.kadiraydemir.orekit.grpc.PropagateRequest;
 import tr.com.kadiraydemir.orekit.grpc.TLEPropagateRequest;

@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package orbital;
+
+import "orbital_service.proto";
+
+option java_multiple_files = true;
+option java_package = "tr.com.kadiraydemir.orekit.grpc";
+option java_outer_classname = "VisibilityServiceProto";
+
+service VisibilityService {
+    // Calculate access intervals between a satellite and a ground station
+    rpc GetAccessIntervals (AccessIntervalsRequest) returns (AccessIntervalsResponse) {}
+}
+
+message AccessIntervalsRequest {
+    string tle_line1 = 1;
+    string tle_line2 = 2;
+    GroundStation ground_station = 3;
+    string start_date_iso = 4;
+    string end_date_iso = 5;
+    double min_elevation_degrees = 6; // Minimum elevation angle in degrees (default 0)
+}
+
+message GroundStation {
+    double latitude_degrees = 1;
+    double longitude_degrees = 2;
+    double altitude_meters = 3;
+    string name = 4;
+}
+
+message AccessIntervalsResponse {
+    string satellite_name = 1;
+    string station_name = 2;
+    repeated AccessInterval intervals = 3;
+}
+
+message AccessInterval {
+    string start_iso = 1;
+    string end_iso = 2;
+    double duration_seconds = 3;
+}

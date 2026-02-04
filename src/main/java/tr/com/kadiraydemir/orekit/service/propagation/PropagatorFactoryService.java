@@ -1,4 +1,4 @@
-package tr.com.kadiraydemir.orekit.service;
+package tr.com.kadiraydemir.orekit.service.propagation;
 
 import org.orekit.frames.Frame;
 import org.orekit.propagation.Propagator;

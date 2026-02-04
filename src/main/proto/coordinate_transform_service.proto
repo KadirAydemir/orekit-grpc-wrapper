@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package orbital;
+
+import "orbital_service.proto";
+
+option java_multiple_files = true;
+option java_package = "tr.com.kadiraydemir.orekit.grpc";
+option java_outer_classname = "CoordinateTransformServiceProto";
+
+service CoordinateTransformService {
+    // Transform coordinates from one frame to another
+    rpc Transform (TransformRequest) returns (TransformResponse) {}
+}
+
+message TransformRequest {
+    ReferenceFrame source_frame = 1;
+    ReferenceFrame target_frame = 2;
+    string epoch_iso = 3; // ISO-8601 string, e.g. "2024-01-01T12:00:00Z"
+    
+    // Position and Velocity in source frame
+    double x = 4;
+    double y = 5;
+    double z = 6;
+    double vx = 7;
+    double vy = 8;
+    double vz = 9;
+}
+
+message TransformResponse {
+    ReferenceFrame source_frame = 1;
+    ReferenceFrame target_frame = 2;
+    string epoch_iso = 3;
+
+    // Transformed Position and Velocity in target frame
+    double x = 4;
+    double y = 5;
+    double z = 6;
+    double vx = 7;
+    double vy = 8;
+    double vz = 9;
+}

@@ -1,4 +1,4 @@
-package tr.com.kadiraydemir.orekit.service;
+package tr.com.kadiraydemir.orekit.service.propagation;
 
 import org.hipparchus.ode.AbstractIntegrator;
 import org.orekit.orbits.Orbit;

@@ -1,8 +1,7 @@
-package tr.com.kadiraydemir.orekit.service;
+package tr.com.kadiraydemir.orekit.service.frame;
 
 import org.orekit.frames.Frame;
 import org.orekit.frames.TopocentricFrame;
-
 import tr.com.kadiraydemir.orekit.grpc.ReferenceFrame;
 
 /**
@@ -35,5 +34,6 @@ public interface FrameService {
      * @return TopocentricFrame
      */
     TopocentricFrame createTopocentricFrame(double latitude, double longitude, double altitude,
+
             String name);
 }

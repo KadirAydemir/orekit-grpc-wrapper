@@ -1,11 +1,12 @@
-package tr.com.kadiraydemir.orekit.service;
+package tr.com.kadiraydemir.orekit.service.frame;
 
 import jakarta.enterprise.context.ApplicationScoped;
-
+import org.orekit.bodies.GeodeticPoint;
 import org.orekit.bodies.OneAxisEllipsoid;
 import org.orekit.frames.Frame;
 import org.orekit.frames.FramesFactory;
 import org.orekit.frames.TopocentricFrame;
+import org.orekit.utils.Constants;
 import org.orekit.utils.IERSConventions;
 import tr.com.kadiraydemir.orekit.grpc.ReferenceFrame;
 
@@ -39,15 +40,15 @@ public class FrameServiceImpl implements FrameService {
             String name) {
         Frame itrf = FramesFactory.getITRF(IERSConventions.IERS_2010, true);
         OneAxisEllipsoid earth = new OneAxisEllipsoid(
-                org.orekit.utils.Constants.WGS84_EARTH_EQUATORIAL_RADIUS,
-                org.orekit.utils.Constants.WGS84_EARTH_FLATTENING,
+                Constants.WGS84_EARTH_EQUATORIAL_RADIUS,
+                Constants.WGS84_EARTH_FLATTENING,
                 itrf);
 
-        org.orekit.bodies.GeodeticPoint point = new org.orekit.bodies.GeodeticPoint(
+        GeodeticPoint point = new GeodeticPoint(
                 java.lang.Math.toRadians(latitude),
                 java.lang.Math.toRadians(longitude),
                 altitude);
 
-        return new org.orekit.frames.TopocentricFrame(earth, point, name);
+        return new TopocentricFrame(earth, point, name);
     }
 }

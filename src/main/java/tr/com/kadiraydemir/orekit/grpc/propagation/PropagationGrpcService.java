@@ -1,4 +1,4 @@
-package tr.com.kadiraydemir.orekit.grpc;
+package tr.com.kadiraydemir.orekit.grpc.propagation;
 
 import io.quarkus.grpc.GrpcService;
 import io.smallrye.mutiny.Uni;
@@ -7,7 +7,8 @@ import io.smallrye.common.annotation.RunOnVirtualThread;
 import jakarta.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import tr.com.kadiraydemir.orekit.mapper.PropagationMapper;
-import tr.com.kadiraydemir.orekit.service.PropagationService;
+import tr.com.kadiraydemir.orekit.service.propagation.PropagationService;
+import tr.com.kadiraydemir.orekit.grpc.*;
 
 @Slf4j
 @GrpcService
