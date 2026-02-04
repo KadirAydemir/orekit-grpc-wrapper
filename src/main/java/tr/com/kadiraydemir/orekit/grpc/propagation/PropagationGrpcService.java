@@ -1,8 +1,7 @@
 package tr.com.kadiraydemir.orekit.grpc.propagation;
 
 import io.quarkus.grpc.GrpcService;
-import io.smallrye.mutiny.Uni;
-import io.smallrye.mutiny.Multi;
+import io.grpc.stub.StreamObserver;
 import io.smallrye.common.annotation.RunOnVirtualThread;
 import jakarta.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
@@ -13,7 +12,7 @@ import tr.com.kadiraydemir.orekit.grpc.*;
 @Slf4j
 @GrpcService
 @RunOnVirtualThread
-public class PropagationGrpcService implements OrbitalService {
+public class PropagationGrpcService extends OrbitalServiceGrpc.OrbitalServiceImplBase {
 
     @Inject
     PropagationService propagationService;
@@ -22,15 +21,27 @@ public class PropagationGrpcService implements OrbitalService {
     PropagationMapper propagationMapper;
 
     @Override
-    public Uni<PropagateResponse> propagate(PropagateRequest request) {
+    public void propagate(PropagateRequest request, StreamObserver<PropagateResponse> responseObserver) {
         log.info("Propagate request received");
-        return Uni.createFrom().item(() -> propagationMapper.map(propagationService.propagate(request)));
+        try {
+            var result = propagationService.propagate(request);
+            responseObserver.onNext(propagationMapper.map(result));
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            responseObserver.onError(e);
+        }
     }
 
     @Override
-    public Multi<TLEPropagateResponse> propagateTLE(TLEPropagateRequest request) {
+    public void propagateTLE(TLEPropagateRequest request, StreamObserver<TLEPropagateResponse> responseObserver) {
         log.info("TLE Propagate request received");
-        return propagationService.propagateTLE(request)
-                .map(propagationMapper::map);
+        try {
+            propagationService.propagateTLEBlocking(request, result -> {
+                responseObserver.onNext(propagationMapper.map(result));
+            });
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            responseObserver.onError(e);
+        }
     }
 }
