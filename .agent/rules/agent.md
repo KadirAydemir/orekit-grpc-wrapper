@@ -16,6 +16,14 @@ This is a high-performance gRPC wrapper for the Orekit space flight dynamics lib
 - **List Optimization**: `ArrayList` resizing optimization is used; initialize with `Math.max(0, count)`.
 - **Domain Models**: Services must use domain models (POJOs) for return types and business logic interactions. Do NOT use gRPC generated classes directly in the service layer's return types; restrict them to the gRPC service endpoints (`*GrpcService`) for mapping.
 
+## Best Practices
+- **Dependency Injection**: Although constructor injection is typically preferred for testability, prefer package-private field injection (`@Inject MyService service;`) in this project. This is necessary to ensure JaCoCo coverage reports are generated correctly without interference from Quarkus's class generation.
+- **Testing**:
+  - **Health Checks**: When testing MicroProfile Health checks, explicitly add the qualifier annotation (e.g., `@Inject @Liveness`) to the test injection point to avoid `UnsatisfiedResolutionException`.
+  - **Timeouts**: Orekit initialization (loading `orekit-data.zip`) can be slow. Use extended timeouts for tests involving Orekit context (e.g., `Duration.ofSeconds(30)`).
+- **Lombok**: Ensure Lombok version is kept up-to-date (1.18.38+) to support Java 21+ features.
+- **Virtual Threads**: Verify that blocking logic is offloaded to virtual threads using `@RunOnVirtualThread`.
+
 ## Token Economy & File Constraints (CRITICAL)
 To minimize token usage and avoid wasting context window space:
 

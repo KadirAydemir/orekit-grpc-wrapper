@@ -9,7 +9,7 @@ import tr.com.kadiraydemir.orekit.grpc.*;
 import java.time.Duration;
 
 @QuarkusTest
-public class OrbitalServiceTest {
+public class PropagationGrpcServiceTest {
 
         @GrpcClient("orbital-service-client")
         OrbitalService orbitalService;

@@ -14,7 +14,7 @@ Built with [Quarkus](https://quarkus.io/), it provides a native (or JVM) microse
 
 ## Prerequisites
 
-- JDK 21+
+- JDK 25+
 - Maven 3.9+ (Wrapper included)
 - `orekit-data.zip`: Required for physical data (leap seconds, EOP). This repository expects `orekit-data.zip` in the project root.
 

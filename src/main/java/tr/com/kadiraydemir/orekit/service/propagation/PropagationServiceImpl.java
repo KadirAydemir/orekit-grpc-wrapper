@@ -31,14 +31,11 @@ import io.smallrye.mutiny.Multi;
 @ApplicationScoped
 public class PropagationServiceImpl implements PropagationService {
 
-    private final FrameService frameService;
-    private final PropagatorFactoryService propagatorFactoryService;
+    @Inject
+    FrameService frameService;
 
     @Inject
-    public PropagationServiceImpl(FrameService frameService, PropagatorFactoryService propagatorFactoryService) {
-        this.frameService = frameService;
-        this.propagatorFactoryService = propagatorFactoryService;
-    }
+    PropagatorFactoryService propagatorFactoryService;
 
     @Override
     public OrbitResult propagate(PropagateRequest request) {
