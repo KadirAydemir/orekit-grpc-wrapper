@@ -35,12 +35,8 @@ public class PropagatorFactoryServiceImpl implements PropagatorFactoryService {
     private static final int GRAVITY_ORDER = 10;
     private static final double SPACECRAFT_MASS = 1.0;
 
-    private final IntegratorService integratorService;
-
     @Inject
-    public PropagatorFactoryServiceImpl(IntegratorService integratorService) {
-        this.integratorService = integratorService;
-    }
+    IntegratorService integratorService;
 
     @Override
     public Propagator createPropagator(TLE tle, PropagationModel model, IntegratorType integratorType,
@@ -64,15 +60,14 @@ public class PropagatorFactoryServiceImpl implements PropagatorFactoryService {
         PVCoordinates initialPV = analyticalPropagator.getPVCoordinates(tle.getDate(), temeFrame);
 
         // Create orbit from PV coordinates
-        Orbit initialOrbit = new org.orekit.orbits.CartesianOrbit(initialPV, temeFrame, tle.getDate(),
-                Constants.WGS84_EARTH_MU);
+        Orbit initialOrbit = new KeplerianOrbit(initialPV, temeFrame, tle.getDate(), Constants.WGS84_EARTH_MU);
 
         // Configure integrator based on user selection
         AbstractIntegrator integrator = integratorService.createIntegrator(integratorType, initialOrbit);
 
         // Create numerical propagator
         NumericalPropagator numProp = new NumericalPropagator(integrator);
-        numProp.setOrbitType(OrbitType.CARTESIAN);
+        numProp.setOrbitType(OrbitType.KEPLERIAN);
 
         // Add gravity force model
         NormalizedSphericalHarmonicsProvider gravityProvider = GravityFieldFactory.getNormalizedProvider(GRAVITY_DEGREE,
