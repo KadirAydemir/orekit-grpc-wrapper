@@ -10,7 +10,9 @@ import org.hipparchus.ode.nonstiff.DormandPrince853Integrator;
 import org.hipparchus.ode.nonstiff.GraggBulirschStoerIntegrator;
 import org.orekit.orbits.Orbit;
 import org.orekit.orbits.OrbitType;
-import org.orekit.propagation.numerical.NumericalPropagator;
+import org.orekit.orbits.PositionAngleType;
+import org.orekit.propagation.CartesianToleranceProvider;
+import org.orekit.propagation.ToleranceProvider;
 import tr.com.kadiraydemir.orekit.grpc.IntegratorType;
 
 /**
@@ -22,12 +24,16 @@ public class IntegratorServiceImpl implements IntegratorService {
     private static final double MIN_STEP = 0.001;
     private static final double MAX_STEP = 1000;
     private static final double POSITION_TOLERANCE = 1.0; // Position tolerance in meters
+    private static final double VELOCITY_TOLERANCE = 0.001; // Velocity tolerance in m/s
+    private static final double MASS_TOLERANCE = 1.0e-6; // Mass tolerance in kg
     private static final double FIXED_STEP_SIZE = 60.0; // Fixed step size in seconds
     private static final int ADAMS_ORDER = 4; // Order for Adams integrators
 
     @Override
     public AbstractIntegrator createIntegrator(IntegratorType integratorType, Orbit initialOrbit) {
-        double[][] tolerance = NumericalPropagator.tolerances(POSITION_TOLERANCE, initialOrbit, OrbitType.KEPLERIAN);
+        double[][] tolerance = ToleranceProvider.of(
+            CartesianToleranceProvider.of(POSITION_TOLERANCE, VELOCITY_TOLERANCE, MASS_TOLERANCE)
+        ).getTolerances(initialOrbit, OrbitType.KEPLERIAN, PositionAngleType.TRUE);
 
         if (integratorType == null) {
             integratorType = IntegratorType.DORMAND_PRINCE_853;
