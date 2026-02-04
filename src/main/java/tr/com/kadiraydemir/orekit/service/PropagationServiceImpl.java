@@ -101,7 +101,7 @@ public class PropagationServiceImpl implements PropagationService {
             double duration = endDate.durationFrom(startDate);
             double timeStep = (positionCount > 1) ? duration / (positionCount - 1) : 0;
 
-            List<TleResult.PositionPointResult> positions = new ArrayList<>();
+            List<TleResult.PositionPointResult> positions = new ArrayList<>(Math.max(0, positionCount));
             String frameName = outputFrame.getName();
 
             org.orekit.time.TimeScale utc = TimeScalesFactory.getUTC();
