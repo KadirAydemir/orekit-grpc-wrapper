@@ -22,6 +22,7 @@ import tr.com.kadiraydemir.orekit.model.TleResult;
 
 import java.util.Collections;
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.infrastructure.Infrastructure;
 
 /**
  * Implementation of PropagationService for orbital propagation
@@ -107,6 +108,7 @@ public class PropagationServiceImpl implements PropagationService {
             TimeScale utc = TimeScalesFactory.getUTC();
 
             return Multi.createFrom().range(0, positionCount)
+                    .emitOn(Infrastructure.getDefaultWorkerPool())
                     .map(i -> {
                         AbsoluteDate currentDate = startDate.shiftedBy(i * timeStep);
                         PVCoordinates pv = propagator.getPVCoordinates(currentDate, outputFrame);
