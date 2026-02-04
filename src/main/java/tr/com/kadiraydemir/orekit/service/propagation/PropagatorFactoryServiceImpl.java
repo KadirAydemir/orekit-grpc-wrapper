@@ -35,12 +35,8 @@ public class PropagatorFactoryServiceImpl implements PropagatorFactoryService {
     private static final int GRAVITY_ORDER = 10;
     private static final double SPACECRAFT_MASS = 1.0;
 
-    private final IntegratorService integratorService;
-
     @Inject
-    public PropagatorFactoryServiceImpl(IntegratorService integratorService) {
-        this.integratorService = integratorService;
-    }
+    IntegratorService integratorService;
 
     @Override
     public Propagator createPropagator(TLE tle, PropagationModel model, IntegratorType integratorType,
