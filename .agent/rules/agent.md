@@ -2,7 +2,7 @@
 
 ## Overview
 This is a high-performance gRPC wrapper for the Orekit space flight dynamics library, built with Quarkus and GraalVM.
-- **Java Version**: 21
+- **Java Version**: 25
 - **Framework**: Quarkus
 - **Build Tool**: Maven (`./mvnw`)
 
