@@ -4,7 +4,7 @@
 # ============================================
 
 # Stage 1: Build with GraalVM Native Image
-FROM ghcr.io/graalvm/native-image-community:21 AS build
+FROM ghcr.io/graalvm/native-image-community:25 AS build
 
 USER root
 WORKDIR /app
