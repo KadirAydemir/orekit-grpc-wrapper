@@ -104,6 +104,8 @@ public class PropagationServiceImpl implements PropagationService {
             List<TleResult.PositionPointResult> positions = new ArrayList<>();
             String frameName = outputFrame.getName();
 
+            org.orekit.time.TimeScale utc = TimeScalesFactory.getUTC();
+
             for (int i = 0; i < positionCount; i++) {
                 AbsoluteDate currentDate = startDate.shiftedBy(i * timeStep);
 
@@ -113,7 +115,7 @@ public class PropagationServiceImpl implements PropagationService {
                         pv.getPosition().getX(),
                         pv.getPosition().getY(),
                         pv.getPosition().getZ(),
-                        currentDate.toString(TimeScalesFactory.getUTC())));
+                        currentDate.toString(utc)));
             }
 
             return new TleResult(positions, frameName);
