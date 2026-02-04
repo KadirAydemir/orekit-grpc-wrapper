@@ -17,7 +17,7 @@ This is a high-performance gRPC wrapper for the Orekit space flight dynamics lib
 - **Domain Models**: Services must use domain models (POJOs) for return types and business logic interactions. Do NOT use gRPC generated classes directly in the service layer's return types; restrict them to the gRPC service endpoints (`*GrpcService`) for mapping.
 
 ## Best Practices
-- **Dependency Injection**: Prefer package-private field injection (`@Inject MyService service;`) over constructor injection for beans in this project. This ensures that JaCoCo coverage reports are generated correctly without interference from Quarkus's class generation.
+- **Dependency Injection**: Although constructor injection is typically preferred for testability, prefer package-private field injection (`@Inject MyService service;`) in this project. This is necessary to ensure JaCoCo coverage reports are generated correctly without interference from Quarkus's class generation.
 - **Testing**:
   - **Health Checks**: When testing MicroProfile Health checks, explicitly add the qualifier annotation (e.g., `@Inject @Liveness`) to the test injection point to avoid `UnsatisfiedResolutionException`.
   - **Timeouts**: Orekit initialization (loading `orekit-data.zip`) can be slow. Use extended timeouts for tests involving Orekit context (e.g., `Duration.ofSeconds(30)`).
