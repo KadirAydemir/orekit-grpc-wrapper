@@ -115,7 +115,7 @@ public class PropagationServiceImpl implements PropagationService {
                                 pv.getPosition().getZ(),
                                 currentDate.toString(utc));
                     })
-                    .group().intoLists().of(1000)
+                    .group().intoLists().of(100)
                     .map(positions -> new TleResult(positions, frameName));
 
         } catch (Exception e) {
