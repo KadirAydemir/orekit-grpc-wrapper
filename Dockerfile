@@ -28,13 +28,14 @@ COPY orekit-data.zip ./
 # Build native executable
 # -Dnative activates the native profile in pom.xml
 # Resource limits for shared build servers (4 vCPU, 8GB RAM, 2 concurrent builds)
-# Each build gets: 2 CPUs, 3.5GB heap
+# Each build gets: 1 CPU, 2.5GB heap (conservative to prevent OOM)
 RUN ./mvnw package -Dnative -DskipTests -B \
     -Dquarkus.native.additional-build-args="\
-    -J-Xmx3500m,\
-    -J-Xms1g,\
-    -J-XX:ActiveProcessorCount=2,\
-    --parallelism=2"
+    -J-Xmx2500m,\
+    -J-Xms512m,\
+    -J-XX:ActiveProcessorCount=1,\
+    -J-XX:+UseSerialGC,\
+    --parallelism=1"
 
 # Stage 2: Runtime Image
 FROM registry.access.redhat.com/ubi9/ubi:latest
