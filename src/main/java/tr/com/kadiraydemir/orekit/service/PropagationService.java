@@ -5,8 +5,10 @@ import tr.com.kadiraydemir.orekit.grpc.TLEPropagateRequest;
 import tr.com.kadiraydemir.orekit.model.OrbitResult;
 import tr.com.kadiraydemir.orekit.model.TleResult;
 
+import io.smallrye.mutiny.Multi;
+
 public interface PropagationService {
     OrbitResult propagate(PropagateRequest request);
 
-    TleResult propagateTLE(TLEPropagateRequest request);
+    Multi<TleResult> propagateTLE(TLEPropagateRequest request);
 }

@@ -34,7 +34,7 @@ enum ReferenceFrame {
 
 service OrbitalService {
   rpc Propagate (PropagateRequest) returns (PropagateResponse) {}
-  rpc PropagateTLE (TLEPropagateRequest) returns (TLEPropagateResponse) {}
+  rpc PropagateTLE (TLEPropagateRequest) returns (stream TLEPropagateResponse) {}
 }
 
 message PropagateRequest {
