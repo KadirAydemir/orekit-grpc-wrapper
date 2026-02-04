@@ -109,13 +109,14 @@ public class PropagationServiceImpl implements PropagationService {
                     .map(i -> {
                         AbsoluteDate currentDate = startDate.shiftedBy(i * timeStep);
                         PVCoordinates pv = propagator.getPVCoordinates(currentDate, outputFrame);
-                        var pos = new TleResult.PositionPointResult(
+                        return new TleResult.PositionPointResult(
                                 pv.getPosition().getX(),
                                 pv.getPosition().getY(),
                                 pv.getPosition().getZ(),
                                 currentDate.toString(utc));
-                        return new TleResult(Collections.singletonList(pos), frameName);
-                    });
+                    })
+                    .group().intoLists().of(1000)
+                    .map(positions -> new TleResult(positions, frameName));
 
         } catch (Exception e) {
             return Multi.createFrom().failure(new RuntimeException("TLE Propagation failed: " + e.getMessage(), e));
