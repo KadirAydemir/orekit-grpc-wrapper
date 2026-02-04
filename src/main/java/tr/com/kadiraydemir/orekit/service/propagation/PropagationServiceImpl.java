@@ -19,6 +19,7 @@ import tr.com.kadiraydemir.orekit.grpc.*;
 import tr.com.kadiraydemir.orekit.service.frame.FrameService;
 import tr.com.kadiraydemir.orekit.model.OrbitResult;
 import tr.com.kadiraydemir.orekit.model.TleResult;
+import tr.com.kadiraydemir.orekit.model.TleIndexedResult;
 
 import java.util.Collections;
 import java.util.ArrayList;
@@ -173,6 +174,61 @@ public class PropagationServiceImpl implements PropagationService {
 
         } catch (Exception e) {
             throw new RuntimeException("TLE Propagation failed: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void propagateTLEListBlocking(TLEListPropagateRequest request, Consumer<TleIndexedResult> consumer) {
+        try {
+            PropagationModel requestedModel = request.getModel();
+            ReferenceFrame requestedFrame = request.getOutputFrame();
+            IntegratorType integratorType = request.getIntegrator();
+
+            Frame outputFrame = frameService.resolveFrame(requestedFrame);
+            Frame temeFrame = frameService.getTemeFrame();
+
+            AbsoluteDate startDate = new AbsoluteDate(request.getStartDate(), TimeScalesFactory.getUTC());
+            AbsoluteDate endDate = new AbsoluteDate(request.getEndDate(), TimeScalesFactory.getUTC());
+            int positionCount = request.getPositionCount();
+
+            double duration = endDate.durationFrom(startDate);
+            double timeStep = (positionCount > 1) ? duration / (positionCount - 1) : 0;
+
+            String frameName = outputFrame.getName();
+            TimeScale utc = TimeScalesFactory.getUTC();
+
+            var tles = request.getTlesList();
+            for (int t = 0; t < tles.size(); t++) {
+                var tleMsg = tles.get(t);
+                TLE tle = new TLE(tleMsg.getTleLine1(), tleMsg.getTleLine2());
+
+                Propagator propagator = propagatorFactoryService.createPropagator(
+                        tle, requestedModel, integratorType, temeFrame);
+
+                List<TleResult.PositionPointResult> batch = new ArrayList<>(1000);
+
+                for (int i = 0; i < positionCount; i++) {
+                    AbsoluteDate currentDate = startDate.shiftedBy(i * timeStep);
+                    PVCoordinates pv = propagator.getPVCoordinates(currentDate, outputFrame);
+                    batch.add(new TleResult.PositionPointResult(
+                            pv.getPosition().getX(),
+                            pv.getPosition().getY(),
+                            pv.getPosition().getZ(),
+                            currentDate.toString(utc)));
+
+                    if (batch.size() >= 1000) {
+                        consumer.accept(new TleIndexedResult(t, new ArrayList<>(batch), frameName));
+                        batch.clear();
+                    }
+                }
+
+                if (!batch.isEmpty()) {
+                    consumer.accept(new TleIndexedResult(t, new ArrayList<>(batch), frameName));
+                }
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("TLE List Propagation failed: " + e.getMessage(), e);
         }
     }
 }

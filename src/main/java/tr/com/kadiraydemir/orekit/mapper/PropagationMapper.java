@@ -7,8 +7,10 @@ import org.mapstruct.ReportingPolicy;
 import tr.com.kadiraydemir.orekit.grpc.PositionPoint;
 import tr.com.kadiraydemir.orekit.grpc.PropagateResponse;
 import tr.com.kadiraydemir.orekit.grpc.TLEPropagateResponse;
+import tr.com.kadiraydemir.orekit.grpc.TLEListPropagateResponse;
 import tr.com.kadiraydemir.orekit.model.OrbitResult;
 import tr.com.kadiraydemir.orekit.model.TleResult;
+import tr.com.kadiraydemir.orekit.model.TleIndexedResult;
 
 @Mapper(componentModel = "jakarta", unmappedTargetPolicy = ReportingPolicy.IGNORE, collectionMappingStrategy = CollectionMappingStrategy.ADDER_PREFERRED)
 public interface PropagationMapper {
@@ -17,6 +19,10 @@ public interface PropagationMapper {
 
     @Mapping(target = "positionsList", source = "positions")
     TLEPropagateResponse map(TleResult source);
+
+    @Mapping(target = "tleIndex", source = "index")
+    @Mapping(target = "positionsList", source = "positions")
+    TLEListPropagateResponse map(TleIndexedResult source);
 
     PositionPoint map(TleResult.PositionPointResult source);
 }

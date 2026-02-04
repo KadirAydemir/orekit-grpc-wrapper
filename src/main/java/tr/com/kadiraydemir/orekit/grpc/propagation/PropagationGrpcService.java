@@ -44,4 +44,17 @@ public class PropagationGrpcService extends OrbitalServiceGrpc.OrbitalServiceImp
             responseObserver.onError(e);
         }
     }
+
+    @Override
+    public void propagateTLEList(TLEListPropagateRequest request, StreamObserver<TLEListPropagateResponse> responseObserver) {
+        log.info("TLE List Propagate request received");
+        try {
+            propagationService.propagateTLEListBlocking(request, result -> {
+                responseObserver.onNext(propagationMapper.map(result));
+            });
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            responseObserver.onError(e);
+        }
+    }
 }
