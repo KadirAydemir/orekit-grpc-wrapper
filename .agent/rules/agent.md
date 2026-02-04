@@ -2,14 +2,14 @@
 
 ## Overview
 This is a high-performance gRPC wrapper for the Orekit space flight dynamics library, built with Quarkus and GraalVM.
-- **Java Version**: 21+
+- **Java Version**: 25
 - **Framework**: Quarkus
 - **Build Tool**: Maven (`./mvnw`)
 
 ## Architecture & Code Structure
 - **Source Code**: `src/main/java/tr/com/kadiraydemir/orekit/grpc`
-- **Tests**: `src/test/java/org/acme`
-- **Blocking Code**: Blocking computations in Mutiny `Uni` pipelines must use `.runSubscriptionOn(Infrastructure.getDefaultWorkerPool())`.
+- **Tests**: `src/test/java/tr/com/kadiraydemir/orekit/grpc`
+- **Blocking Code**: Blocking computations should leverage Java 21 Virtual Threads (e.g., using `@RunOnVirtualThread` or `runSubscriptionOn(Infrastructure.getDefaultWorkerPool())` only if virtual threads are not applicable).
 - **List Optimization**: `ArrayList` resizing optimization is used; initialize with `Math.max(0, count)`.
 
 ## Token Economy & File Constraints (CRITICAL)
