@@ -14,6 +14,7 @@ This is a high-performance gRPC wrapper for the Orekit space flight dynamics lib
 - **Test Package Structure**: Test classes should mirror the source package structure. For example, tests for `propagation` services should be in `tr.com.kadiraydemir.orekit.grpc.propagation` or `tr.com.kadiraydemir.orekit.service.propagation` depending on what they test.
 - **Blocking Code**: Blocking computations should leverage Java 21 Virtual Threads (e.g., using `@RunOnVirtualThread` or `runSubscriptionOn(Infrastructure.getDefaultWorkerPool())` only if virtual threads are not applicable).
 - **List Optimization**: `ArrayList` resizing optimization is used; initialize with `Math.max(0, count)`.
+- **Domain Models**: Services must use domain models (POJOs) for return types and business logic interactions. Do NOT use gRPC generated classes directly in the service layer's return types; restrict them to the gRPC service endpoints (`*GrpcService`) for mapping.
 
 ## Token Economy & File Constraints (CRITICAL)
 To minimize token usage and avoid wasting context window space:

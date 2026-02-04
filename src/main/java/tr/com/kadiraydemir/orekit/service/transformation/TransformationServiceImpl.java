@@ -10,7 +10,7 @@ import org.orekit.utils.PVCoordinates;
 import org.hipparchus.geometry.euclidean.threed.Vector3D;
 import tr.com.kadiraydemir.orekit.grpc.TransformRequest;
 import tr.com.kadiraydemir.orekit.service.frame.FrameService;
-import tr.com.kadiraydemir.orekit.grpc.TransformResponse;
+import tr.com.kadiraydemir.orekit.model.TransformResult;
 
 @ApplicationScoped
 public class TransformationServiceImpl implements TransformationService {
@@ -19,7 +19,7 @@ public class TransformationServiceImpl implements TransformationService {
     FrameService frameService;
 
     @Override
-    public TransformResponse transform(TransformRequest request) {
+    public TransformResult transform(TransformRequest request) {
         // Resolve frames
         Frame sourceFrame = frameService.resolveFrame(request.getSourceFrame());
         Frame targetFrame = frameService.resolveFrame(request.getTargetFrame());
@@ -39,16 +39,15 @@ public class TransformationServiceImpl implements TransformationService {
         // Transform PV
         PVCoordinates targetPV = transform.transformPVCoordinates(sourcePV);
 
-        return TransformResponse.newBuilder()
-                .setSourceFrame(request.getSourceFrame())
-                .setTargetFrame(request.getTargetFrame())
-                .setEpochIso(request.getEpochIso())
-                .setX(targetPV.getPosition().getX())
-                .setY(targetPV.getPosition().getY())
-                .setZ(targetPV.getPosition().getZ())
-                .setVx(targetPV.getVelocity().getX())
-                .setVy(targetPV.getVelocity().getY())
-                .setVz(targetPV.getVelocity().getZ())
-                .build();
+        return new TransformResult(
+                request.getSourceFrame().name(),
+                request.getTargetFrame().name(),
+                request.getEpochIso(),
+                targetPV.getPosition().getX(),
+                targetPV.getPosition().getY(),
+                targetPV.getPosition().getZ(),
+                targetPV.getVelocity().getX(),
+                targetPV.getVelocity().getY(),
+                targetPV.getVelocity().getZ());
     }
 }

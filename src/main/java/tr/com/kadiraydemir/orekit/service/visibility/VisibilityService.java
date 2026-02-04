@@ -1,7 +1,8 @@
 package tr.com.kadiraydemir.orekit.service.visibility;
 
 import tr.com.kadiraydemir.orekit.grpc.AccessIntervalsRequest;
-import tr.com.kadiraydemir.orekit.grpc.AccessIntervalsResponse;
+import tr.com.kadiraydemir.orekit.grpc.AccessIntervalsRequest;
+import tr.com.kadiraydemir.orekit.model.VisibilityResult;
 
 /**
  * Service for performing visibility/access analysis
@@ -12,7 +13,7 @@ public interface VisibilityService {
      * Compute access intervals between a satellite and a ground station
      * 
      * @param request the access intervals request
-     * @return the access intervals response
+     * @return the access intervals result
      */
-    AccessIntervalsResponse getAccessIntervals(AccessIntervalsRequest request);
+    VisibilityResult getAccessIntervals(AccessIntervalsRequest request);
 }

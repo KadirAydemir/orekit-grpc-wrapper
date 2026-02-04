@@ -19,6 +19,19 @@ public class TransformationGrpcService implements CoordinateTransformService {
     @Override
     public Uni<TransformResponse> transform(TransformRequest request) {
         log.info("Transform request received: {} -> {}", request.getSourceFrame(), request.getTargetFrame());
-        return Uni.createFrom().item(() -> transformationService.transform(request));
+        return Uni.createFrom().item(() -> {
+            var result = transformationService.transform(request);
+            return TransformResponse.newBuilder()
+                    .setSourceFrame(ReferenceFrame.valueOf(result.sourceFrame()))
+                    .setTargetFrame(ReferenceFrame.valueOf(result.targetFrame()))
+                    .setEpochIso(result.epochIso())
+                    .setX(result.x())
+                    .setY(result.y())
+                    .setZ(result.z())
+                    .setVx(result.vx())
+                    .setVy(result.vy())
+                    .setVz(result.vz())
+                    .build();
+        });
     }
 }

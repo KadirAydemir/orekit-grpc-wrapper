@@ -18,6 +18,21 @@ public class VisibilityGrpcService implements VisibilityService {
     @Override
     public Uni<AccessIntervalsResponse> getAccessIntervals(AccessIntervalsRequest request) {
         log.info("Visibility request received for station: {}", request.getGroundStation().getName());
-        return Uni.createFrom().item(() -> visibilityService.getAccessIntervals(request));
+        return Uni.createFrom().item(() -> {
+            var result = visibilityService.getAccessIntervals(request);
+            var intervals = result.intervals().stream()
+                    .map(interval -> AccessInterval.newBuilder()
+                            .setStartIso(interval.startIso())
+                            .setEndIso(interval.endIso())
+                            .setDurationSeconds(interval.durationSeconds())
+                            .build())
+                    .toList();
+
+            return AccessIntervalsResponse.newBuilder()
+                    .setSatelliteName(result.satelliteName())
+                    .setStationName(result.stationName())
+                    .addAllIntervals(intervals)
+                    .build();
+        });
     }
 }

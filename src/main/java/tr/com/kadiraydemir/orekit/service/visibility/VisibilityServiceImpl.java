@@ -16,10 +16,10 @@ import org.orekit.propagation.events.handlers.ContinueOnEvent;
 import org.orekit.time.AbsoluteDate;
 import org.orekit.time.TimeScalesFactory;
 
-import tr.com.kadiraydemir.orekit.grpc.AccessInterval;
 import tr.com.kadiraydemir.orekit.service.frame.FrameService;
 import tr.com.kadiraydemir.orekit.grpc.AccessIntervalsRequest;
-import tr.com.kadiraydemir.orekit.grpc.AccessIntervalsResponse;
+import tr.com.kadiraydemir.orekit.model.AccessIntervalResult;
+import tr.com.kadiraydemir.orekit.model.VisibilityResult;
 
 @ApplicationScoped
 public class VisibilityServiceImpl implements VisibilityService {
@@ -28,7 +28,7 @@ public class VisibilityServiceImpl implements VisibilityService {
     FrameService frameService;
 
     @Override
-    public AccessIntervalsResponse getAccessIntervals(AccessIntervalsRequest request) {
+    public VisibilityResult getAccessIntervals(AccessIntervalsRequest request) {
         // 1. Setup TLE
         TLE tle = new TLE(request.getTleLine1(), request.getTleLine2());
         TLEPropagator propagator = TLEPropagator.selectExtrapolator(tle);
@@ -61,7 +61,7 @@ public class VisibilityServiceImpl implements VisibilityService {
 
         // 7. Process Events
         List<LoggedEvent> events = logger.getLoggedEvents();
-        List<AccessInterval> intervals = new ArrayList<>();
+        List<AccessIntervalResult> intervals = new ArrayList<>();
 
         AbsoluteDate currentStart = null;
 
@@ -94,18 +94,16 @@ public class VisibilityServiceImpl implements VisibilityService {
             intervals.add(buildInterval(currentStart, endDate));
         }
 
-        return AccessIntervalsResponse.newBuilder()
-                .setSatelliteName(tle.getElementNumber() + "") // Or parse name if available in request/TLE
-                .setStationName(request.getGroundStation().getName())
-                .addAllIntervals(intervals)
-                .build();
+        return new VisibilityResult(
+                tle.getElementNumber() + "",
+                request.getGroundStation().getName(),
+                intervals);
     }
 
-    private AccessInterval buildInterval(AbsoluteDate start, AbsoluteDate end) {
-        return AccessInterval.newBuilder()
-                .setStartIso(start.toString())
-                .setEndIso(end.toString())
-                .setDurationSeconds(end.durationFrom(start))
-                .build();
+    private AccessIntervalResult buildInterval(AbsoluteDate start, AbsoluteDate end) {
+        return new AccessIntervalResult(
+                start.toString(),
+                end.toString(),
+                end.durationFrom(start));
     }
 }
