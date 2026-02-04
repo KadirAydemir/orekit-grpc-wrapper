@@ -20,7 +20,9 @@ import tr.com.kadiraydemir.orekit.service.frame.FrameService;
 import tr.com.kadiraydemir.orekit.model.OrbitResult;
 import tr.com.kadiraydemir.orekit.model.TleResult;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import io.smallrye.mutiny.Multi;
 
 /**
@@ -106,16 +108,23 @@ public class PropagationServiceImpl implements PropagationService {
             String frameName = outputFrame.getName();
             TimeScale utc = TimeScalesFactory.getUTC();
 
-            return Multi.createFrom().range(0, positionCount)
-                    .map(i -> {
-                        AbsoluteDate currentDate = startDate.shiftedBy(i * timeStep);
-                        PVCoordinates pv = propagator.getPVCoordinates(currentDate, outputFrame);
-                        var pos = new TleResult.PositionPointResult(
-                                pv.getPosition().getX(),
-                                pv.getPosition().getY(),
-                                pv.getPosition().getZ(),
-                                currentDate.toString(utc));
-                        return new TleResult(Collections.singletonList(pos), frameName);
+            int batchSize = 100;
+            return Multi.createFrom().range(0, (positionCount + batchSize - 1) / batchSize)
+                    .map(batchIndex -> {
+                        List<TleResult.PositionPointResult> batch = new ArrayList<>(batchSize);
+                        int start = batchIndex * batchSize;
+                        int end = Math.min(start + batchSize, positionCount);
+
+                        for (int i = start; i < end; i++) {
+                            AbsoluteDate currentDate = startDate.shiftedBy(i * timeStep);
+                            PVCoordinates pv = propagator.getPVCoordinates(currentDate, outputFrame);
+                            batch.add(new TleResult.PositionPointResult(
+                                    pv.getPosition().getX(),
+                                    pv.getPosition().getY(),
+                                    pv.getPosition().getZ(),
+                                    currentDate.toString(utc)));
+                        }
+                        return new TleResult(batch, frameName);
                     });
 
         } catch (Exception e) {

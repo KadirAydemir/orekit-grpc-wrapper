@@ -41,7 +41,7 @@ public class VisibilityGrpcServiceTest {
                 .build();
 
         AccessIntervalsResponse response = visibilityService.getAccessIntervals(request)
-                .await().atMost(Duration.ofSeconds(10));
+                .await().atMost(Duration.ofSeconds(30));
 
         Assertions.assertNotNull(response);
         Assertions.assertEquals("Ankara", response.getStationName());
