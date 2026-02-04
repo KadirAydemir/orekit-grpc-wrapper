@@ -1,0 +1,21 @@
+# Development Skills & Best Practices
+
+## Java & Quarkus
+- **Java Version**: Target Java 21 as per configuration.
+- **Virtual Threads**: Utilize `@RunOnVirtualThread` for blocking operations to maximize throughput.
+- **Dependency Injection**: Prefer field injection (`@Inject package-private`) for service beans to ensure compatibility with JaCoCo coverage reports in Quarkus.
+- **List Initialization**: Prevent unnecessary resizing by initializing `ArrayList` with `Math.max(0, count)`.
+- **Domain Models**: Strict separation of concerns. Services return POJOs. gRPC classes stay in the gRPC layer.
+
+## Testing
+- **Coverage**: Maintain high code coverage. Verify with `./mvnw clean test`.
+- **MicroProfile Health**: When testing `@Liveness` or `@Readiness` checks, explicitly use qualifiers `@Inject @Liveness` or `@Inject @Readiness` in tests.
+- **Timeouts**: Use extended timeouts (e.g., `Duration.ofSeconds(30)`) for tests involving Orekit data initialization.
+
+## Orekit & Space Dynamics
+- **Data Loading**: Be aware that `orekit-data.zip` is required for initialization.
+- **Frame Handling**: Use proper Orekit frames and time scales.
+
+## General
+- **Code Style**: Use imports to avoid fully qualified class names.
+- **Clean Code**: Follow standard naming conventions and keep methods focused.
