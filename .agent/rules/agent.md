@@ -6,6 +6,8 @@ This is a high-performance gRPC wrapper for the Orekit space flight dynamics lib
 - **Framework**: Quarkus
 - **Build Tool**: Maven (`./mvnw`)
 
+**Important Rule:** The project uses Java 25. Ensure `maven.compiler.release` is set to `25` in `pom.xml`.
+
 ## Architecture & Code Structure
 - **Source Code**: `src/main/java/tr/com/kadiraydemir/orekit/grpc`
 - **Tests**: `src/test/java/tr/com/kadiraydemir/orekit/grpc`
