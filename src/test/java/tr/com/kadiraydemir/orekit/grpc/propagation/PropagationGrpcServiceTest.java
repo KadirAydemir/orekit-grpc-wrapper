@@ -96,11 +96,11 @@ public class PropagationGrpcServiceTest {
                                 .build();
 
                 TLEStreamRequest tleRequest1 = TLEStreamRequest.newBuilder()
-                                .setTle(tle1)
+                                .setTleList(TLELinesList.newBuilder().addLines(tle1).build())
                                 .build();
 
                 TLEStreamRequest tleRequest2 = TLEStreamRequest.newBuilder()
-                                .setTle(tle1)
+                                .setTleList(TLELinesList.newBuilder().addLines(tle1).build())
                                 .build();
 
                 Multi<TLEStreamRequest> requests = Multi.createFrom().items(configRequest, tleRequest1, tleRequest2);

@@ -60,7 +60,7 @@ public class PropagationGrpcService extends OrbitalServiceGrpc.OrbitalServiceImp
         SubmissionPublisher<TLELines> publisher = new SubmissionPublisher<>(propagationExecutor, 32768);
 
         Multi.createFrom().publisher(publisher)
-s                .onItem().transformToMulti(tleLines -> {
+                .onItem().transformToMulti(tleLines -> {
                     if (configHolder[0] == null) {
                         return Multi.createFrom().<TLEStreamResponse>failure(
                                 new IllegalStateException("Config must be sent before TLEs"));
@@ -110,13 +110,14 @@ s                .onItem().transformToMulti(tleLines -> {
                 try {
                     if (value.hasConfig()) {
                         configHolder[0] = value.getConfig();
-                    } else if (value.hasTle()) {
+                    } else if (value.hasTleList()) {
                         if (configHolder[0] == null) {
                             log.error("TLE received before config");
                             responseObserver.onError(new IllegalStateException("Config must be sent before TLEs"));
                             return;
                         }
-                        publisher.submit(value.getTle());
+                        // Submit each TLE in the chunk to the internal publisher
+                        value.getTleList().getLinesList().forEach(publisher::submit);
                     }
                 } catch (Exception e) {
                     log.error("Error in onNext: {}", e.getMessage(), e);

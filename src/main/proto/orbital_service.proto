@@ -89,7 +89,7 @@ message TLEPropagateResponse {
 message TLEStreamRequest {
   oneof payload {
     TLEStreamConfig config = 1;
-    TLELines tle = 2;
+    TLELinesList tle_list = 2;
   }
 }
 
@@ -100,6 +100,10 @@ message TLEStreamConfig {
   int32 position_count = 4;
   ReferenceFrame output_frame = 5;
   IntegratorType integrator = 6;
+}
+
+message TLELinesList {
+  repeated TLELines lines = 1;
 }
 
 message TLELines {
