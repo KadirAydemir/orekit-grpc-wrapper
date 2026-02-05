@@ -16,18 +16,18 @@ import org.orekit.time.TimeScale;
 import org.orekit.time.TimeScalesFactory;
 import org.orekit.utils.Constants;
 import org.orekit.utils.PVCoordinates;
-import tr.com.kadiraydemir.orekit.grpc.*;
-import tr.com.kadiraydemir.orekit.service.frame.FrameService;
+import tr.com.kadiraydemir.orekit.exception.OrekitException;
+import tr.com.kadiraydemir.orekit.model.IntegratorType;
 import tr.com.kadiraydemir.orekit.model.OrbitResult;
+import tr.com.kadiraydemir.orekit.model.PropagateRequestDTO;
+import tr.com.kadiraydemir.orekit.model.PropagationModelType;
+import tr.com.kadiraydemir.orekit.model.ReferenceFrameType;
+import tr.com.kadiraydemir.orekit.model.TLEPropagateRequestDTO;
 import tr.com.kadiraydemir.orekit.model.TleResult;
+import tr.com.kadiraydemir.orekit.service.frame.FrameService;
 
-import java.util.Collections;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.function.Consumer;
 import io.smallrye.mutiny.Multi;
-import io.smallrye.mutiny.infrastructure.Infrastructure;
 
 /**
  * Implementation of PropagationService for orbital propagation
@@ -46,29 +46,29 @@ public class PropagationServiceImpl implements PropagationService {
     ExecutorService propagationExecutor;
 
     @Override
-    public OrbitResult propagate(PropagateRequest request) {
+    public OrbitResult propagate(PropagateRequestDTO request) {
         try {
             Frame inertialFrame = FramesFactory.getEME2000();
-            AbsoluteDate initialDate = new AbsoluteDate(request.getEpochIso(), TimeScalesFactory.getUTC());
+            AbsoluteDate initialDate = new AbsoluteDate(request.epochIso(), TimeScalesFactory.getUTC());
 
             Orbit initialOrbit = new KeplerianOrbit(
-                    request.getSemimajorAxis(),
-                    request.getEccentricity(),
-                    request.getInclination(),
-                    request.getPerigeeArgument(),
-                    request.getRightAscensionOfAscendingNode(),
-                    request.getMeanAnomaly(),
+                    request.semimajorAxis(),
+                    request.eccentricity(),
+                    request.inclination(),
+                    request.perigeeArgument(),
+                    request.rightAscensionOfAscendingNode(),
+                    request.meanAnomaly(),
                     PositionAngleType.MEAN,
                     inertialFrame,
                     initialDate,
                     Constants.WGS84_EARTH_MU);
 
             Propagator propagator = new KeplerianPropagator(initialOrbit);
-            AbsoluteDate targetDate = initialDate.shiftedBy(request.getDuration());
+            AbsoluteDate targetDate = initialDate.shiftedBy(request.duration());
             PVCoordinates pv = propagator.getPVCoordinates(targetDate, inertialFrame);
 
             return new OrbitResult(
-                    request.getSatelliteName(),
+                    request.satelliteName(),
                     pv.getPosition().getX(),
                     pv.getPosition().getY(),
                     pv.getPosition().getZ(),
@@ -79,16 +79,16 @@ public class PropagationServiceImpl implements PropagationService {
                     inertialFrame.getName());
 
         } catch (Exception e) {
-            throw new RuntimeException("Propagation failed: " + e.getMessage(), e);
+            throw new OrekitException("Propagation failed: " + e.getMessage(), e);
         }
     }
 
     @Override
-    public Multi<TleResult> propagateTLE(TLEPropagateRequest request) {
+    public Multi<TleResult> propagateTLE(TLEPropagateRequestDTO request) {
         try {
-            TLE tle = new TLE(request.getTleLine1(), request.getTleLine2());
-            PropagationModel requestedModel = request.getModel();
-            ReferenceFrame requestedFrame = request.getOutputFrame();
+            TLE tle = new TLE(request.tleLine1(), request.tleLine2());
+            PropagationModelType requestedModel = request.model();
+            ReferenceFrameType requestedFrame = request.outputFrame();
 
             // Get the output frame (default is TEME)
             Frame outputFrame = frameService.resolveFrame(requestedFrame);
@@ -97,15 +97,15 @@ public class PropagationServiceImpl implements PropagationService {
             Frame temeFrame = frameService.getTemeFrame();
 
             // Get integrator type for numerical model
-            IntegratorType integratorType = request.getIntegrator();
+            IntegratorType integratorType = request.integrator();
 
             // Create propagator based on model selection
             Propagator propagator = propagatorFactoryService.createPropagator(
                     tle, requestedModel, integratorType, temeFrame);
 
-            AbsoluteDate startDate = new AbsoluteDate(request.getStartDate(), TimeScalesFactory.getUTC());
-            AbsoluteDate endDate = new AbsoluteDate(request.getEndDate(), TimeScalesFactory.getUTC());
-            int positionCount = request.getPositionCount();
+            AbsoluteDate startDate = new AbsoluteDate(request.startDate(), TimeScalesFactory.getUTC());
+            AbsoluteDate endDate = new AbsoluteDate(request.endDate(), TimeScalesFactory.getUTC());
+            int positionCount = request.positionCount();
 
             double duration = endDate.durationFrom(startDate);
             double timeStep = (positionCount > 1) ? duration / (positionCount - 1) : 0;
@@ -128,7 +128,7 @@ public class PropagationServiceImpl implements PropagationService {
                     .map(positions -> new TleResult(positions, frameName));
 
         } catch (Exception e) {
-            return Multi.createFrom().failure(new RuntimeException("TLE Propagation failed: " + e.getMessage(), e));
+            return Multi.createFrom().failure(new OrekitException("TLE Propagation failed: " + e.getMessage(), e));
         }
     }
 

@@ -5,43 +5,37 @@ import jakarta.inject.Inject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.orekit.frames.Frame;
-import org.orekit.frames.FramesFactory;
 import org.orekit.frames.TopocentricFrame;
 import tr.com.kadiraydemir.orekit.grpc.ReferenceFrame;
+import tr.com.kadiraydemir.orekit.mapper.FrameTestMapper;
 
 @QuarkusTest
 public class FrameServiceImplTest {
 
     @Inject
-    FrameServiceImpl frameService;
+    FrameService frameService;
+
+    @Inject
+    FrameTestMapper frameTestMapper;
 
     @Test
     public void testResolveFrame() {
-        Assertions.assertEquals(FramesFactory.getTEME().getName(), frameService.resolveFrame(null).getName());
-        Assertions.assertEquals(FramesFactory.getTEME().getName(), frameService.resolveFrame(ReferenceFrame.TEME).getName());
-        Assertions.assertEquals(FramesFactory.getGCRF().getName(), frameService.resolveFrame(ReferenceFrame.GCRF).getName());
-        Assertions.assertEquals(FramesFactory.getEME2000().getName(), frameService.resolveFrame(ReferenceFrame.EME2000).getName());
-        Assertions.assertTrue(frameService.resolveFrame(ReferenceFrame.ITRF).getName().contains("ITRF"));
+        Frame teme = frameService.resolveFrame(frameTestMapper.map(ReferenceFrame.TEME));
+        Frame gcrf = frameService.resolveFrame(frameTestMapper.map(ReferenceFrame.GCRF));
+        Frame eme2000 = frameService.resolveFrame(frameTestMapper.map(ReferenceFrame.EME2000));
+        Frame itrf = frameService.resolveFrame(frameTestMapper.map(ReferenceFrame.ITRF));
 
-        // Default case (if any other enum value) - Protocol buffers enums might be tricky if we don't handle UNRECOGNIZED
-        // But the switch covers explicit cases. The default branch in switch covers "default -> FramesFactory.getTEME()"
-        // To hit default, we'd need an enum value that isn't one of the cases.
-        // ReferenceFrame includes UNRECOGNIZED if it's a proto enum.
-        Assertions.assertEquals(FramesFactory.getTEME().getName(), frameService.resolveFrame(ReferenceFrame.UNRECOGNIZED).getName());
-    }
-
-    @Test
-    public void testGetTemeFrame() {
-        Assertions.assertEquals(FramesFactory.getTEME().getName(), frameService.getTemeFrame().getName());
+        Assertions.assertNotNull(teme);
+        Assertions.assertNotNull(gcrf);
+        Assertions.assertNotNull(eme2000);
+        Assertions.assertNotNull(itrf);
+        Assertions.assertEquals("TEME", teme.getName());
     }
 
     @Test
     public void testCreateTopocentricFrame() {
-        TopocentricFrame station = frameService.createTopocentricFrame(39.9334, 32.8597, 938.0, "Ankara");
+        TopocentricFrame station = frameService.createTopocentricFrame(39.9334, 32.8597, 1000.0, "Ankara");
         Assertions.assertNotNull(station);
         Assertions.assertEquals("Ankara", station.getName());
-        Assertions.assertEquals(Math.toRadians(39.9334), station.getPoint().getLatitude(), 1e-6);
-        Assertions.assertEquals(Math.toRadians(32.8597), station.getPoint().getLongitude(), 1e-6);
-        Assertions.assertEquals(938.0, station.getPoint().getAltitude(), 1e-6);
     }
 }

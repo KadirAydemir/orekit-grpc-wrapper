@@ -11,6 +11,7 @@ import tr.com.kadiraydemir.orekit.grpc.EclipseInterval;
 import tr.com.kadiraydemir.orekit.grpc.EclipseRequest;
 import tr.com.kadiraydemir.orekit.grpc.EclipseResponse;
 import tr.com.kadiraydemir.orekit.grpc.EclipseServiceGrpc;
+import tr.com.kadiraydemir.orekit.mapper.EclipseMapper;
 import tr.com.kadiraydemir.orekit.service.eclipse.EclipseService;
 
 import java.util.concurrent.ExecutorService;
@@ -24,12 +25,15 @@ public class EclipseGrpcService extends EclipseServiceGrpc.EclipseServiceImplBas
     EclipseService eclipseService;
 
     @Inject
+    EclipseMapper eclipseMapper;
+
+    @Inject
     @Named("propagationExecutor")
     ExecutorService propagationExecutor;
 
     @Override
     public void calculateEclipses(EclipseRequest request, StreamObserver<EclipseResponse> responseObserver) {
-        Uni.createFrom().item(() -> eclipseService.calculateEclipses(request))
+        Uni.createFrom().item(() -> eclipseService.calculateEclipses(eclipseMapper.toDTO(request)))
                 .runSubscriptionOn(propagationExecutor)
                 .map(result -> {
                     var intervals = result.intervals().stream()

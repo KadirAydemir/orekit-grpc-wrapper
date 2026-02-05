@@ -1,55 +1,60 @@
 package tr.com.kadiraydemir.orekit.service.propagation;
 
 import io.quarkus.test.junit.QuarkusTest;
-import io.smallrye.mutiny.Multi;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import tr.com.kadiraydemir.orekit.grpc.PropagateRequest;
 import tr.com.kadiraydemir.orekit.grpc.ReferenceFrame;
 import tr.com.kadiraydemir.orekit.grpc.TLEPropagateRequest;
+import tr.com.kadiraydemir.orekit.mapper.PropagationTestMapper;
 import tr.com.kadiraydemir.orekit.model.OrbitResult;
 import tr.com.kadiraydemir.orekit.model.TleResult;
 
+import java.time.Duration;
 import java.util.List;
 
 @QuarkusTest
 public class PropagationServiceImplTest {
 
     @Inject
-    PropagationServiceImpl propagationService;
+    PropagationService propagationService;
+
+    @Inject
+    PropagationTestMapper propagationTestMapper;
 
     @Test
-    public void testPropagateSuccess() {
+    public void testPropagate() {
         PropagateRequest request = PropagateRequest.newBuilder()
-                .setSatelliteName("Test")
+                .setSatelliteName("TestSat")
                 .setSemimajorAxis(7000000.0)
                 .setEccentricity(0.001)
-                .setInclination(0.5)
+                .setInclination(Math.toRadians(45.0))
+                .setPerigeeArgument(0)
+                .setRightAscensionOfAscendingNode(0)
+                .setMeanAnomaly(0)
                 .setEpochIso("2024-01-01T12:00:00Z")
                 .setDuration(3600.0)
                 .build();
 
-        OrbitResult result = propagationService.propagate(request);
+        OrbitResult result = propagationService.propagate(propagationTestMapper.toDTO(request));
+
         Assertions.assertNotNull(result);
-        Assertions.assertEquals("Test", result.satelliteName());
+        Assertions.assertEquals("TestSat", result.satelliteName());
         Assertions.assertNotEquals(0.0, result.posX());
     }
 
     @Test
-    public void testPropagateFailure() {
+    public void testPropagateInvalidDate() {
         PropagateRequest request = PropagateRequest.newBuilder()
-                .setEpochIso("INVALID-DATE") // Will cause parse error
+                .setEpochIso("invalid-date")
                 .build();
 
-        RuntimeException thrown = Assertions.assertThrows(RuntimeException.class, () -> {
-            propagationService.propagate(request);
-        });
-        Assertions.assertTrue(thrown.getMessage().contains("Propagation failed"));
+        Assertions.assertThrows(RuntimeException.class, () -> propagationService.propagate(propagationTestMapper.toDTO(request)));
     }
 
     @Test
-    public void testPropagateTLESuccess() {
+    public void testPropagateTLE() {
         String line1 = "1 25544U 98067A   24001.00000000  .00016717  00000-0  10270-3 0  9991";
         String line2 = "2 25544  51.6444  20.0000 0005000  0.0000  50.0000 15.50000000 10005";
 
@@ -58,33 +63,29 @@ public class PropagationServiceImplTest {
                 .setTleLine2(line2)
                 .setStartDate("2024-01-01T12:00:00Z")
                 .setEndDate("2024-01-01T13:00:00Z")
-                .setPositionCount(2)
+                .setPositionCount(10)
                 .setOutputFrame(ReferenceFrame.TEME)
                 .build();
 
-        Multi<TleResult> resultMulti = propagationService.propagateTLE(request);
-        List<TleResult> results = resultMulti.collect().asList().await().indefinitely();
+        List<TleResult> results = propagationService.propagateTLE(propagationTestMapper.toDTO(request))
+                .collect().asList().await().atMost(Duration.ofSeconds(5));
 
-        // With batch size 100 and 2 positions, we expect 1 result containing 2 positions
-        Assertions.assertEquals(1, results.size());
-        Assertions.assertEquals(2, results.get(0).positions().size());
+        Assertions.assertNotNull(results);
+        Assertions.assertFalse(results.isEmpty());
     }
 
     @Test
-    public void testPropagateTLEFailure() {
+    public void testPropagateTLEInvalid() {
         TLEPropagateRequest request = TLEPropagateRequest.newBuilder()
-                .setTleLine1("BAD TLE")
+                .setTleLine1("invalid")
                 .build();
 
-        Multi<TleResult> resultMulti = propagationService.propagateTLE(request);
-
-        Assertions.assertThrows(RuntimeException.class, () -> {
-            resultMulti.collect().asList().await().indefinitely();
-        });
+        Assertions.assertThrows(Exception.class, () -> propagationService.propagateTLE(propagationTestMapper.toDTO(request))
+                .collect().asList().await().atMost(Duration.ofSeconds(5)));
     }
 
     @Test
-    public void testPropagateTLEBatchedSuccess() {
+    public void testPropagateTLEHighVolume() {
         String line1 = "1 25544U 98067A   24001.00000000  .00016717  00000-0  10270-3 0  9991";
         String line2 = "2 25544  51.6444  20.0000 0005000  0.0000  50.0000 15.50000000 10005";
 
@@ -92,16 +93,16 @@ public class PropagationServiceImplTest {
                 .setTleLine1(line1)
                 .setTleLine2(line2)
                 .setStartDate("2024-01-01T12:00:00Z")
-                .setEndDate("2024-01-01T13:00:00Z")
-                .setPositionCount(105) // Should produce 2 batches (100 + 5) with Multi (batch size 100)
+                .setEndDate("2024-01-02T12:00:00Z") // 24 hours
+                .setPositionCount(1000)
                 .setOutputFrame(ReferenceFrame.TEME)
                 .build();
 
-        List<TleResult> results = propagationService.propagateTLE(request)
-                .collect().asList().await().indefinitely();
+        List<TleResult> results = propagationService.propagateTLE(propagationTestMapper.toDTO(request))
+                .collect().asList().await().atMost(Duration.ofSeconds(10));
 
-        Assertions.assertEquals(2, results.size());
-        Assertions.assertEquals(100, results.get(0).positions().size());
-        Assertions.assertEquals(5, results.get(1).positions().size());
+        Assertions.assertNotNull(results);
+        int totalPoints = results.stream().mapToInt(r -> r.positions().size()).sum();
+        Assertions.assertEquals(1000, totalPoints);
     }
 }

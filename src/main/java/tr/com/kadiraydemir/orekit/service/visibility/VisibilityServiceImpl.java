@@ -17,7 +17,7 @@ import org.orekit.time.AbsoluteDate;
 import org.orekit.time.TimeScalesFactory;
 
 import tr.com.kadiraydemir.orekit.service.frame.FrameService;
-import tr.com.kadiraydemir.orekit.grpc.AccessIntervalsRequest;
+import tr.com.kadiraydemir.orekit.model.AccessIntervalsRequestDTO;
 import tr.com.kadiraydemir.orekit.model.AccessIntervalResult;
 import tr.com.kadiraydemir.orekit.model.VisibilityResult;
 
@@ -28,24 +28,24 @@ public class VisibilityServiceImpl implements VisibilityService {
     FrameService frameService;
 
     @Override
-    public VisibilityResult getAccessIntervals(AccessIntervalsRequest request) {
+    public VisibilityResult getAccessIntervals(AccessIntervalsRequestDTO request) {
         // 1. Setup TLE
-        TLE tle = new TLE(request.getTleLine1(), request.getTleLine2());
+        TLE tle = new TLE(request.tleLine1(), request.tleLine2());
         TLEPropagator propagator = TLEPropagator.selectExtrapolator(tle);
 
         // 2. Setup Reference Dates
-        AbsoluteDate startDate = new AbsoluteDate(request.getStartDateIso(), TimeScalesFactory.getUTC());
-        AbsoluteDate endDate = new AbsoluteDate(request.getEndDateIso(), TimeScalesFactory.getUTC());
+        AbsoluteDate startDate = new AbsoluteDate(request.startDateIso(), TimeScalesFactory.getUTC());
+        AbsoluteDate endDate = new AbsoluteDate(request.endDateIso(), TimeScalesFactory.getUTC());
 
         // 3. Setup Ground Station Frame
         TopocentricFrame stationFrame = frameService.createTopocentricFrame(
-                request.getGroundStation().getLatitudeDegrees(),
-                request.getGroundStation().getLongitudeDegrees(),
-                request.getGroundStation().getAltitudeMeters(),
-                request.getGroundStation().getName());
+                request.groundStation().latitudeDegrees(),
+                request.groundStation().longitudeDegrees(),
+                request.groundStation().altitudeMeters(),
+                request.groundStation().name());
 
         // 4. Setup Detector
-        double minElevation = java.lang.Math.toRadians(request.getMinElevationDegrees());
+        double minElevation = java.lang.Math.toRadians(request.minElevationDegrees());
         ElevationDetector detector = new ElevationDetector(stationFrame)
                 .withConstantElevation(minElevation)
                 .withMaxCheck(60.0) // Check every 60s max
@@ -96,7 +96,7 @@ public class VisibilityServiceImpl implements VisibilityService {
 
         return new VisibilityResult(
                 tle.getElementNumber() + "",
-                request.getGroundStation().getName(),
+                request.groundStation().name(),
                 intervals);
     }
 

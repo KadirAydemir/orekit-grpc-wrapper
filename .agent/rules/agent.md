@@ -1,49 +1,211 @@
 # Project: Orekit gRPC Wrapper
 
 ## Overview
-This is a high-performance gRPC wrapper for the Orekit space flight dynamics library, built with Quarkus and GraalVM.
-- **Java Version**: 25
-- **Framework**: Quarkus
-- **Build Tool**: Maven (`./mvnw`)
+High-performance gRPC wrapper for the Orekit space flight dynamics library.
+Built with Quarkus and GraalVM Native Image.
 
-**Important Rule:** The project uses Java 25. Ensure `maven.compiler.release` is set to `25` in `pom.xml`.
+- Java Version: 25 (FINAL features only)
+- Framework: Quarkus
+- Build Tool: Maven (./mvnw)
+
+IMPORTANT:
+- maven.compiler.release MUST be 25
+- Preview or incubator features are FORBIDDEN
+- If a feature requires --enable-preview, it must NOT be used
+
+---
 
 ## Architecture & Code Structure
-- **Source Code**: `src/main/java/tr/com/kadiraydemir/orekit/grpc`
-- **Tests**: `src/test/java/tr/com/kadiraydemir/orekit/grpc`
-- **Service Package Structure**: Maintain a modular structure under `tr.com.kadiraydemir.orekit.service` by grouping related services into subpackages (e.g., `propagation`, `visibility`, `transformation`, `frame`). Avoid dumping all classes directly into the `service` package.
-- **gRPC Package Structure**: Similar to services, grouping gRPC implementations in `tr.com.kadiraydemir.orekit.grpc` into subpackages (e.g., `propagation`, `visibility`).
-- **Test Package Structure**: Test classes should mirror the source package structure. For example, tests for `propagation` services should be in `tr.com.kadiraydemir.orekit.grpc.propagation` or `tr.com.kadiraydemir.orekit.service.propagation` depending on what they test.
-- **Blocking Code**: Blocking computations should leverage Java 21 Virtual Threads (e.g., using `@RunOnVirtualThread` or `runSubscriptionOn(Infrastructure.getDefaultWorkerPool())` only if virtual threads are not applicable).
-- **List Optimization**: `ArrayList` resizing optimization is used; initialize with `Math.max(0, count)`.
-- **Domain Models**: Services must use domain models (POJOs) for return types and business logic interactions. Do NOT use gRPC generated classes directly in the service layer's return types; restrict them to the gRPC service endpoints (`*GrpcService`) for mapping.
 
-## Best Practices
-- **Dependency Injection**: Although constructor injection is typically preferred for testability, prefer package-private field injection (`@Inject MyService service;`) in this project. This is necessary to ensure JaCoCo coverage reports are generated correctly without interference from Quarkus's class generation.
-- **Testing**:
-  - **Health Checks**: When testing MicroProfile Health checks, explicitly add the qualifier annotation (e.g., `@Inject @Liveness`) to the test injection point to avoid `UnsatisfiedResolutionException`.
-  - **Timeouts**: Orekit initialization (loading `orekit-data.zip`) can be slow. Use extended timeouts for tests involving Orekit context (e.g., `Duration.ofSeconds(30)`).
-- **Lombok**: Ensure Lombok version is kept up-to-date (1.18.38+) to support Java 21+ features.
-- **Virtual Threads**: Verify that blocking logic is offloaded to virtual threads using `@RunOnVirtualThread`.
-- **Parallelization**: Use non-blocking stubs to parallelize RPCs.
-- **Custom Executor**: Provide a custom executor that limits the number of threads, based on your workload (cached (default), fixed, forkjoin, etc).
+Source Root:
+- src/main/java/tr/com/kadiraydemir/orekit/grpc
+
+Packages:
+- Service layer:
+  tr.com.kadiraydemir.orekit.service.<domain>
+  (propagation, visibility, transformation, frame, etc.)
+
+- gRPC layer:
+  tr.com.kadiraydemir.orekit.grpc.<domain>
+
+- Tests:
+  Must mirror source package structure exactly
+
+Rules:
+- Do NOT dump classes into root service or grpc packages
+- Keep domain boundaries explicit
+
+---
+
+## Data Modeling Rules
+
+- Use record for:
+  - DTOs
+  - API request / response objects
+  - gRPC mapping targets
+  - Immutable value objects
+
+- Use class for:
+  - Domain models with behavior
+  - Stateful or mutable lifecycle objects
+
+- Records:
+  - May define compact constructors for validation
+  - Must remain immutable
+
+- Do NOT use Lombok for DTOs if record is applicable
+
+---
+
+## gRPC & Service Layer Rules
+
+- Service layer MUST NOT expose gRPC generated classes
+- gRPC classes (*GrpcService) are mapping layers only
+- No business logic in gRPC layer
+
+---
+
+## Mapping Rules
+
+- gRPC ↔ domain mapping must be explicit and isolated
+- Mapping code must be side-effect free
+- No validation or business logic inside mappers
+
+---
+
+## Concurrency & Performance
+
+- Blocking operations MUST run on virtual threads
+  - Prefer @RunOnVirtualThread
+  - Avoid worker pools unless virtual threads are impossible
+
+- Use non-blocking stubs to parallelize RPC calls
+- Provide custom executors with bounded thread limits
+
+- Optimize lists:
+  - new ArrayList<>(Math.max(0, expectedSize))
+
+---
+
+## GraalVM Native Image Rules
+
+- Avoid reflection unless explicitly required
+- Avoid dynamic classloading
+- Keep initialization deterministic
+- No runtime scanning assumptions
+
+---
+
+## Determinism & Numerical Safety
+
+- Avoid non-deterministic APIs (e.g., unordered parallel streams)
+- Explicitly define iteration order when order matters
+- Avoid direct double equality comparisons
+- Prefer tolerance-based comparisons
+- Time calculations must be explicit about units
+- Assume IEEE-754 semantics
+
+---
+
+## Dependency Injection (Quarkus-specific)
+
+- Prefer package-private field injection:
+  @Inject MyService service;
+
+Reason:
+- Required for stable JaCoCo coverage with Quarkus bytecode generation
+
+- Constructor injection ONLY if explicitly requested
+
+---
+
+## Testing Rules
+
+- Use JUnit 5
+- Use extended timeouts for Orekit initialization:
+  Duration.ofSeconds(30) or more if required
+
+- Health checks:
+  Always inject with explicit qualifier:
+  @Inject @Liveness
+
+- Prefer integration tests over excessive mocking
+
+---
+
+## Error Handling Rules
+
+- Prefer domain-specific unchecked exceptions
+- Do NOT throw generic RuntimeException
+- gRPC status mapping happens ONLY in gRPC layer
+
+---
+
+## Logging Rules
+
+- Use structured logging where possible
+- Do NOT log large objects or Orekit internal state
+- Avoid logging inside tight loops
+
+---
+
+## API Evolution Rules
+
+- Do NOT introduce breaking changes without explicit request
+- New fields in DTOs must be backward-compatible
+- gRPC contract changes require justification
+
+---
+
+## Coding Standards
+
+- Prefer immutability
+- No wildcard imports
+- Explicit types in public APIs
+- Method length <= 30 lines unless justified
+- Minimal diffs only
+
+---
+
+## Change Scope & Failsafe Rules (CRITICAL)
+
+- Modify only what is necessary for the requested task
+- Do NOT refactor unless explicitly asked
+- If a change impacts multiple packages, STOP and ask
+- If requirements are ambiguous, STOP and ask
+- Do NOT guess orbital mechanics behavior
+
+---
+
+## Agent Behavior Rules
+
+- Do NOT introduce new libraries without approval
+- Do NOT rewrite entire classes for small changes
+- Explain reasoning briefly and concisely
+
+---
 
 ## Token Economy & File Constraints (CRITICAL)
-To minimize token usage and avoid wasting context window space:
 
-1.  **IGNORED FILES**: Do NOT read or list contents of the following files/directories:
-    - `orekit-data.zip` (Large binary data)
-    - `target/` (Build artifacts)
-    - `.mvn/` (Maven wrapper internals)
-    - `*.jar`, `*.class`, `*.zip`, `*.geoid`
-    - `mvnw`, `mvnw.cmd` (unless debugging the wrapper itself)
-    - `.git/`
+IGNORED FILES / DIRECTORIES:
+- orekit-data.zip
+- target/
+- .mvn/
+- .git/
+- *.jar, *.class, *.zip, *.geoid
+- mvnw, mvnw.cmd (unless wrapper debugging)
 
-2.  **Efficient Exploration**:
-    - Use `ls -F` or `list_files` on specific subdirectories rather than listing the entire root recursively if not needed.
-    - Read only relevant source files (`.java`, `pom.xml`, config files).
+Exploration Rules:
+- Never scan entire repository
+- List only specific directories when needed
+- Read only relevant .java, pom.xml, and config files
+
+---
 
 ## Commands
-- **Build**: `./mvnw clean install`
-- **Test**: `./mvnw test`
-- **Code Style**: Always use imports instead of fully qualified names to keep the code clean and readable, especially for project classes (e.g., `tr.com.kadiraydemir.orekit.grpc.*`).
+
+- Build: ./mvnw clean install
+- Test: ./mvnw test
+
+Code Style:
+- Always use imports (no fully qualified names in code)

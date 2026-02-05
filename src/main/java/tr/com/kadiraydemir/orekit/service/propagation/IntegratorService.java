@@ -2,7 +2,7 @@ package tr.com.kadiraydemir.orekit.service.propagation;
 
 import org.hipparchus.ode.AbstractIntegrator;
 import org.orekit.orbits.Orbit;
-import tr.com.kadiraydemir.orekit.grpc.IntegratorType;
+import tr.com.kadiraydemir.orekit.model.IntegratorType;
 
 /**
  * Service for creating numerical integrators
