@@ -1,6 +1,6 @@
 package tr.com.kadiraydemir.orekit.service.eclipse;
 
-import tr.com.kadiraydemir.orekit.model.EclipseRequestDTO;
+import tr.com.kadiraydemir.orekit.model.EclipseRequest;
 import tr.com.kadiraydemir.orekit.model.EclipseResult;
 
 /**
@@ -14,5 +14,5 @@ public interface EclipseService {
      * @param request the eclipse calculation request
      * @return the eclipse result containing intervals
      */
-    EclipseResult calculateEclipses(EclipseRequestDTO request);
+    EclipseResult calculateEclipses(EclipseRequest request);
 }

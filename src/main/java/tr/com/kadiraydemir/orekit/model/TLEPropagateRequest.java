@@ -1,6 +1,6 @@
 package tr.com.kadiraydemir.orekit.model;
 
-public record TLEPropagateRequestDTO(
+public record TLEPropagateRequest(
         PropagationModelType model,
         String tleLine1,
         String tleLine2,

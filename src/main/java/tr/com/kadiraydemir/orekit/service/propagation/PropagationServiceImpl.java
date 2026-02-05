@@ -19,10 +19,10 @@ import org.orekit.utils.PVCoordinates;
 import tr.com.kadiraydemir.orekit.exception.OrekitException;
 import tr.com.kadiraydemir.orekit.model.IntegratorType;
 import tr.com.kadiraydemir.orekit.model.OrbitResult;
-import tr.com.kadiraydemir.orekit.model.PropagateRequestDTO;
+import tr.com.kadiraydemir.orekit.model.PropagateRequest;
 import tr.com.kadiraydemir.orekit.model.PropagationModelType;
 import tr.com.kadiraydemir.orekit.model.ReferenceFrameType;
-import tr.com.kadiraydemir.orekit.model.TLEPropagateRequestDTO;
+import tr.com.kadiraydemir.orekit.model.TLEPropagateRequest;
 import tr.com.kadiraydemir.orekit.model.TleResult;
 import tr.com.kadiraydemir.orekit.service.frame.FrameService;
 
@@ -46,7 +46,7 @@ public class PropagationServiceImpl implements PropagationService {
     ExecutorService propagationExecutor;
 
     @Override
-    public OrbitResult propagate(PropagateRequestDTO request) {
+    public OrbitResult propagate(PropagateRequest request) {
         try {
             Frame inertialFrame = FramesFactory.getEME2000();
             AbsoluteDate initialDate = new AbsoluteDate(request.epochIso(), TimeScalesFactory.getUTC());
@@ -84,7 +84,7 @@ public class PropagationServiceImpl implements PropagationService {
     }
 
     @Override
-    public Multi<TleResult> propagateTLE(TLEPropagateRequestDTO request) {
+    public Multi<TleResult> propagateTLE(TLEPropagateRequest request) {
         try {
             TLE tle = new TLE(request.tleLine1(), request.tleLine2());
             PropagationModelType requestedModel = request.model();

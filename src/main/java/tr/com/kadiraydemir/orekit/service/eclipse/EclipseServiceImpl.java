@@ -22,7 +22,7 @@ import org.orekit.utils.Constants;
 import org.orekit.utils.IERSConventions;
 import org.orekit.utils.OccultationEngine;
 
-import tr.com.kadiraydemir.orekit.model.EclipseRequestDTO;
+import tr.com.kadiraydemir.orekit.model.EclipseRequest;
 import tr.com.kadiraydemir.orekit.model.EclipseIntervalResult;
 import tr.com.kadiraydemir.orekit.model.EclipseResult;
 
@@ -30,7 +30,7 @@ import tr.com.kadiraydemir.orekit.model.EclipseResult;
 public class EclipseServiceImpl implements EclipseService {
 
     @Override
-    public EclipseResult calculateEclipses(EclipseRequestDTO request) {
+    public EclipseResult calculateEclipses(EclipseRequest request) {
         // 1. Setup TLE
         TLE tle = new TLE(request.tleLine1(), request.tleLine2());
         TLEPropagator propagator = TLEPropagator.selectExtrapolator(tle);

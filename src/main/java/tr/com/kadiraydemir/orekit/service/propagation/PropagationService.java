@@ -1,14 +1,14 @@
 package tr.com.kadiraydemir.orekit.service.propagation;
 
 import tr.com.kadiraydemir.orekit.model.OrbitResult;
-import tr.com.kadiraydemir.orekit.model.PropagateRequestDTO;
-import tr.com.kadiraydemir.orekit.model.TLEPropagateRequestDTO;
+import tr.com.kadiraydemir.orekit.model.PropagateRequest;
+import tr.com.kadiraydemir.orekit.model.TLEPropagateRequest;
 import tr.com.kadiraydemir.orekit.model.TleResult;
 
 import io.smallrye.mutiny.Multi;
 
 public interface PropagationService {
-    OrbitResult propagate(PropagateRequestDTO request);
+    OrbitResult propagate(PropagateRequest request);
 
-    Multi<TleResult> propagateTLE(TLEPropagateRequestDTO request);
+    Multi<TleResult> propagateTLE(TLEPropagateRequest request);
 }

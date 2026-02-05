@@ -1,6 +1,6 @@
 package tr.com.kadiraydemir.orekit.model;
 
-public record TransformRequestDTO(
+public record TransformRequest(
         ReferenceFrameType sourceFrame,
         ReferenceFrameType targetFrame,
         String epochIso,

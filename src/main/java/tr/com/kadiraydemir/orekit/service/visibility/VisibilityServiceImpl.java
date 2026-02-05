@@ -17,7 +17,7 @@ import org.orekit.time.AbsoluteDate;
 import org.orekit.time.TimeScalesFactory;
 
 import tr.com.kadiraydemir.orekit.service.frame.FrameService;
-import tr.com.kadiraydemir.orekit.model.AccessIntervalsRequestDTO;
+import tr.com.kadiraydemir.orekit.model.AccessIntervalsRequest;
 import tr.com.kadiraydemir.orekit.model.AccessIntervalResult;
 import tr.com.kadiraydemir.orekit.model.VisibilityResult;
 
@@ -28,7 +28,7 @@ public class VisibilityServiceImpl implements VisibilityService {
     FrameService frameService;
 
     @Override
-    public VisibilityResult getAccessIntervals(AccessIntervalsRequestDTO request) {
+    public VisibilityResult getAccessIntervals(AccessIntervalsRequest request) {
         // 1. Setup TLE
         TLE tle = new TLE(request.tleLine1(), request.tleLine2());
         TLEPropagator propagator = TLEPropagator.selectExtrapolator(tle);

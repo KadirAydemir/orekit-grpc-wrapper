@@ -1,6 +1,6 @@
 package tr.com.kadiraydemir.orekit.model;
 
-public record PropagateRequestDTO(
+public record PropagateRequest(
         String satelliteName,
         double semimajorAxis,
         double eccentricity,

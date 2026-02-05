@@ -54,6 +54,7 @@ Rules:
   - Must remain immutable
 
 - Do NOT use Lombok for DTOs if record is applicable
+- DTOs must NOT have a 'Dto' or 'DTO' suffix
 
 ---
 
