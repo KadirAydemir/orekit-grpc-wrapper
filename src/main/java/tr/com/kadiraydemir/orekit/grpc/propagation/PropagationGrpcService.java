@@ -60,44 +60,54 @@ public class PropagationGrpcService extends OrbitalServiceGrpc.OrbitalServiceImp
         SubmissionPublisher<TLELines> publisher = new SubmissionPublisher<>(propagationExecutor, 32768);
 
         Multi.createFrom().publisher(publisher)
-                .flatMap(tleLines -> {
-                    if (configHolder[0] == null) {
-                        return Multi.createFrom().<TLEStreamResponse>failure(
-                                new IllegalStateException("Config must be sent before TLEs"));
+                .group().intoLists().of(16) // Process in chunks of 16
+                .onItem().transformToMultiAndConcatenate(batch -> {
+                    // Map batch to list of Publishers
+                    java.util.List<java.util.concurrent.Flow.Publisher<TLEStreamResponse>> publishers = new java.util.ArrayList<>();
+
+                    for (TLELines tleLines : batch) {
+                        if (configHolder[0] == null) {
+                            publishers.add(Multi.createFrom().<TLEStreamResponse>failure(
+                                    new IllegalStateException("Config must be sent before TLEs")));
+                            continue;
+                        }
+                        try {
+                            TLEPropagateRequest request = TLEPropagateRequest.newBuilder()
+                                    .setModel(configHolder[0].getModel())
+                                    .setTleLine1(tleLines.getTleLine1())
+                                    .setTleLine2(tleLines.getTleLine2())
+                                    .setStartDate(configHolder[0].getStartDate())
+                                    .setEndDate(configHolder[0].getEndDate())
+                                    .setPositionCount(configHolder[0].getPositionCount())
+                                    .setOutputFrame(configHolder[0].getOutputFrame())
+                                    .setIntegrator(configHolder[0].getIntegrator())
+                                    .build();
+
+                            publishers.add(propagationService.propagateTLE(propagationMapper.toDTO(request))
+                                    .map(result -> TLEStreamResponse.newBuilder()
+                                            .setTleLine1(tleLines.getTleLine1())
+                                            .setTleLine2(tleLines.getTleLine2())
+                                            .addAllPositions(result.positions().stream()
+                                                    .map(p -> PositionPoint.newBuilder()
+                                                            .setX(p.x())
+                                                            .setY(p.y())
+                                                            .setZ(p.z())
+                                                            .setTimestamp(p.timestamp())
+                                                            .build())
+                                                    .toList())
+                                            .setFrame(result.frame())
+                                            .build()));
+                        } catch (Exception e) {
+                            log.error("Error processing TLE: {}", tleLines.getTleLine1(), e);
+                            publishers.add(Multi.createFrom().item(TLEStreamResponse.newBuilder()
+                                    .setTleLine1(tleLines.getTleLine1())
+                                    .setTleLine2(tleLines.getTleLine2())
+                                    .setError(e.getMessage())
+                                    .build()));
+                        }
                     }
-                    try {
-                        TLEPropagateRequest request = TLEPropagateRequest.newBuilder()
-                                .setModel(configHolder[0].getModel())
-                                .setTleLine1(tleLines.getTleLine1())
-                                .setTleLine2(tleLines.getTleLine2())
-                                .setStartDate(configHolder[0].getStartDate())
-                                .setEndDate(configHolder[0].getEndDate())
-                                .setPositionCount(configHolder[0].getPositionCount())
-                                .setOutputFrame(configHolder[0].getOutputFrame())
-                                .setIntegrator(configHolder[0].getIntegrator())
-                                .build();
-                        return propagationService.propagateTLE(propagationMapper.toDTO(request))
-                                .map(result -> TLEStreamResponse.newBuilder()
-                                        .setTleLine1(tleLines.getTleLine1())
-                                        .setTleLine2(tleLines.getTleLine2())
-                                        .addAllPositions(result.positions().stream()
-                                                .map(p -> PositionPoint.newBuilder()
-                                                        .setX(p.x())
-                                                        .setY(p.y())
-                                                        .setZ(p.z())
-                                                        .setTimestamp(p.timestamp())
-                                                        .build())
-                                                .toList())
-                                        .setFrame(result.frame())
-                                        .build());
-                    } catch (Exception e) {
-                        log.error("Error processing TLE: {}", tleLines.getTleLine1(), e);
-                        return Multi.createFrom().item(TLEStreamResponse.newBuilder()
-                                .setTleLine1(tleLines.getTleLine1())
-                                .setTleLine2(tleLines.getTleLine2())
-                                .setError(e.getMessage())
-                                .build());
-                    }
+                    // Execute the batch of 16 concurrently
+                    return Multi.createBy().merging().streams(publishers);
                 })
                 .subscribe().with(
                         responseObserver::onNext,
