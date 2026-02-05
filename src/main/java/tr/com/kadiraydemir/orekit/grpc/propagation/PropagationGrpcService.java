@@ -55,27 +55,79 @@ public class PropagationGrpcService extends OrbitalServiceGrpc.OrbitalServiceImp
     }
 
     @Override
-    public StreamObserver<TLEPropagateRequest> propagateTLEStream(StreamObserver<TLEPropagateResponse> responseObserver) {
-        SubmissionPublisher<TLEPropagateRequest> publisher = new SubmissionPublisher<>();
+    public StreamObserver<TLEStreamRequest> propagateTLEStream(StreamObserver<TLEStreamResponse> responseObserver) {
+        final TLEStreamConfig[] configHolder = new TLEStreamConfig[1];
+        SubmissionPublisher<TLELines> publisher = new SubmissionPublisher<>(propagationExecutor, 256);
 
         Multi.createFrom().publisher(publisher)
-                .flatMap(request -> propagationService.propagateTLE(propagationMapper.toDTO(request))
-                        .map(propagationMapper::map)
-                )
+                .flatMap(tleLines -> {
+                    if (configHolder[0] == null) {
+                        return Multi.createFrom().failure(
+                                new IllegalStateException("Config must be sent before TLEs"));
+                    }
+                    try {
+                        TLEPropagateRequest request = TLEPropagateRequest.newBuilder()
+                                .setModel(configHolder[0].getModel())
+                                .setTleLine1(tleLines.getTleLine1())
+                                .setTleLine2(tleLines.getTleLine2())
+                                .setStartDate(configHolder[0].getStartDate())
+                                .setEndDate(configHolder[0].getEndDate())
+                                .setPositionCount(configHolder[0].getPositionCount())
+                                .setOutputFrame(configHolder[0].getOutputFrame())
+                                .setIntegrator(configHolder[0].getIntegrator())
+                                .build();
+                        return propagationService.propagateTLE(propagationMapper.toDTO(request))
+                                .map(result -> TLEStreamResponse.newBuilder()
+                                        .setTleLine1(tleLines.getTleLine1())
+                                        .setTleLine2(tleLines.getTleLine2())
+                                        .addAllPositions(result.positions().stream()
+                                                .map(p -> PositionPoint.newBuilder()
+                                                        .setX(p.x())
+                                                        .setY(p.y())
+                                                        .setZ(p.z())
+                                                        .setTimestamp(p.timestamp())
+                                                        .build())
+                                                .toList())
+                                        .setFrame(result.frame())
+                                        .build());
+                    } catch (Exception e) {
+                        log.error("Error processing TLE: {}", tleLines.getTleLine1(), e);
+                        return Multi.createFrom().item(TLEStreamResponse.newBuilder()
+                                .setTleLine1(tleLines.getTleLine1())
+                                .setTleLine2(tleLines.getTleLine2())
+                                .setError(e.getMessage())
+                                .build());
+                    }
+                })
                 .subscribe().with(
                         responseObserver::onNext,
                         responseObserver::onError,
                         responseObserver::onCompleted
                 );
 
-        return new StreamObserver<TLEPropagateRequest>() {
+        return new StreamObserver<TLEStreamRequest>() {
             @Override
-            public void onNext(TLEPropagateRequest value) {
-                publisher.submit(value);
+            public void onNext(TLEStreamRequest value) {
+                try {
+                    if (value.hasConfig()) {
+                        configHolder[0] = value.getConfig();
+                    } else if (value.hasTle()) {
+                        if (configHolder[0] == null) {
+                            log.error("TLE received before config");
+                            responseObserver.onError(new IllegalStateException("Config must be sent before TLEs"));
+                            return;
+                        }
+                        publisher.submit(value.getTle());
+                    }
+                } catch (Exception e) {
+                    log.error("Error in onNext: {}", e.getMessage(), e);
+                    responseObserver.onError(e);
+                }
             }
 
             @Override
             public void onError(Throwable t) {
+                log.error("Stream error: {}", t.getMessage(), t);
                 publisher.closeExceptionally(t);
             }
 

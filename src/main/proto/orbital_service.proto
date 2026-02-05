@@ -35,7 +35,7 @@ enum ReferenceFrame {
 service OrbitalService {
   rpc Propagate (PropagateRequest) returns (PropagateResponse) {}
   rpc PropagateTLE (TLEPropagateRequest) returns (stream TLEPropagateResponse) {}
-  rpc PropagateTLEStream (stream TLEPropagateRequest) returns (stream TLEPropagateResponse) {}
+  rpc PropagateTLEStream (stream TLEStreamRequest) returns (stream TLEStreamResponse) {}
 }
 
 message PropagateRequest {
@@ -83,4 +83,34 @@ message PositionPoint {
 message TLEPropagateResponse {
   repeated PositionPoint positions = 1;
   string frame = 2; // Reference frame name (applies to all positions)
+}
+
+// Two-phase streaming: config first, then TLEs
+message TLEStreamRequest {
+  oneof payload {
+    TLEStreamConfig config = 1;
+    TLELines tle = 2;
+  }
+}
+
+message TLEStreamConfig {
+  PropagationModel model = 1;
+  string start_date = 2; // ISO-8601
+  string end_date = 3; // ISO-8601
+  int32 position_count = 4;
+  ReferenceFrame output_frame = 5;
+  IntegratorType integrator = 6;
+}
+
+message TLELines {
+  string tle_line1 = 1;
+  string tle_line2 = 2;
+}
+
+message TLEStreamResponse {
+  string tle_line1 = 1;
+  string tle_line2 = 2;
+  repeated PositionPoint positions = 3;
+  string frame = 4;
+  string error = 5;
 }
