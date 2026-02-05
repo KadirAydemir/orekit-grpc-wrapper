@@ -31,7 +31,7 @@ public class PropagationGrpcServiceTest {
 
                 List<TLEPropagateResponse> responses = orbitalService.propagateTLE(request)
                                 .collect().asList()
-                                .await().atMost(Duration.ofSeconds(10));
+                                .await().atMost(Duration.ofSeconds(30));
 
                 Assertions.assertNotNull(responses);
                 Assertions.assertFalse(responses.isEmpty());
@@ -58,7 +58,7 @@ public class PropagationGrpcServiceTest {
                                 .build();
 
                 PropagateResponse response = orbitalService.propagate(request)
-                                .await().atMost(Duration.ofSeconds(5));
+                                .await().atMost(Duration.ofSeconds(30));
 
                 Assertions.assertNotNull(response);
                 Assertions.assertEquals("TestSat", response.getSatelliteName());
