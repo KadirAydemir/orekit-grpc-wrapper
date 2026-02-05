@@ -35,7 +35,8 @@ enum ReferenceFrame {
 service OrbitalService {
   rpc Propagate (PropagateRequest) returns (PropagateResponse) {}
   rpc PropagateTLE (TLEPropagateRequest) returns (stream TLEPropagateResponse) {}
-  rpc PropagateTLEStream (stream TLEStreamRequest) returns (stream TLEStreamResponse) {}
+  // Bulk Input -> Stream Output
+  rpc PropagateTLEList (TLEListRequest) returns (stream TLEStreamResponse) {}
 }
 
 message PropagateRequest {
@@ -116,4 +117,9 @@ message TLEStreamResponse {
   repeated PositionPoint positions = 3;
   string frame = 4;
   string error = 5;
+}
+
+message TLEListRequest {
+  TLEStreamConfig config = 1;
+  repeated TLELines tles = 2;
 }

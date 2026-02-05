@@ -10,8 +10,11 @@ import jakarta.inject.Named;
 import lombok.extern.slf4j.Slf4j;
 import tr.com.kadiraydemir.orekit.grpc.*;
 import tr.com.kadiraydemir.orekit.mapper.PropagationMapper;
+import tr.com.kadiraydemir.orekit.model.TleResult;
 import tr.com.kadiraydemir.orekit.service.propagation.PropagationService;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.SubmissionPublisher;
 
@@ -44,7 +47,8 @@ public class PropagationGrpcService extends OrbitalServiceGrpc.OrbitalServiceImp
     }
 
     @Override
-    public void propagateTLE(TLEPropagateRequest request, StreamObserver<TLEPropagateResponse> responseObserver) {
+    public void propagateTLE(tr.com.kadiraydemir.orekit.grpc.TLEPropagateRequest request,
+            StreamObserver<TLEPropagateResponse> responseObserver) {
         propagationService.propagateTLE(propagationMapper.toDTO(request))
                 .subscribe().with(
                         result -> responseObserver.onNext(propagationMapper.map(result)),
@@ -53,89 +57,87 @@ public class PropagationGrpcService extends OrbitalServiceGrpc.OrbitalServiceImp
     }
 
     @Override
-    public StreamObserver<TLEStreamRequest> propagateTLEStream(StreamObserver<TLEStreamResponse> responseObserver) {
-        final TLEStreamConfig[] configHolder = new TLEStreamConfig[1];
-        // Buffer size increased to 32768 (2^15) to handle large bursts (approx 30k
-        // satellites) without blocking
-        SubmissionPublisher<TLELines> publisher = new SubmissionPublisher<>(propagationExecutor, 32768);
+    public void propagateTLEList(TLEListRequest request, StreamObserver<TLEStreamResponse> responseObserver) {
+        // Validation
+        if (!request.hasConfig()) {
+            responseObserver.onError(new IllegalArgumentException("Config is required"));
+            return;
+        }
 
-        Multi.createFrom().publisher(publisher)
-                .onItem().transformToMulti(tleLines -> {
-                    if (configHolder[0] == null) {
-                        return Multi.createFrom().<TLEStreamResponse>failure(
-                                new IllegalStateException("Config must be sent before TLEs"));
-                    }
-                    try {
-                        TLEPropagateRequest request = TLEPropagateRequest.newBuilder()
-                                .setModel(configHolder[0].getModel())
-                                .setTleLine1(tleLines.getTleLine1())
-                                .setTleLine2(tleLines.getTleLine2())
-                                .setStartDate(configHolder[0].getStartDate())
-                                .setEndDate(configHolder[0].getEndDate())
-                                .setPositionCount(configHolder[0].getPositionCount())
-                                .setOutputFrame(configHolder[0].getOutputFrame())
-                                .setIntegrator(configHolder[0].getIntegrator())
-                                .build();
+        TLEStreamConfig config = request.getConfig();
+        List<TLELines> allTles = request.getTlesList();
 
-                        return propagationService.propagateTLE(propagationMapper.toDTO(request))
-                                .map(result -> TLEStreamResponse.newBuilder()
-                                        .setSatelliteId(extractSatelliteId(tleLines.getTleLine1()))
-                                        .addAllPositions(result.positions().stream()
-                                                .map(p -> PositionPoint.newBuilder()
-                                                        .setX(p.x())
-                                                        .setY(p.y())
-                                                        .setZ(p.z())
-                                                        .setTimestamp(p.timestamp())
-                                                        .build())
-                                                .toList())
-                                        .setFrame(result.frame())
-                                        .build());
-                    } catch (Exception e) {
-                        log.error("Error processing TLE: {}", tleLines.getTleLine1(), e);
-                        return Multi.createFrom().item(TLEStreamResponse.newBuilder()
-                                .setSatelliteId(extractSatelliteId(tleLines.getTleLine1()))
-                                .setError(e.getMessage())
-                                .build());
-                    }
-                })
-                .merge(128)
+        // Chunk processing logic
+        // We use Multi to process chunks in parallel on the executor, and stream
+        // results immediately
+        Multi.createFrom().iterable(allTles)
+                .group().intoLists().of(200) // Batch size 200
+                .onItem().transformToUni(chunk -> Uni.createFrom().item(() -> processBatch(chunk, config))
+                        .runSubscriptionOn(propagationExecutor))
+                .merge(32) // Parallelism level (up to 32 chunks in flight)
+                .onItem().transformToMulti(batchResults -> Multi.createFrom().iterable(batchResults)) // Flatten batch
+                                                                                                      // results into
+                                                                                                      // stream
+                .concatenate() // Flatten the stream (Multi<TLEStreamResponse>)
                 .subscribe().with(
-                        responseObserver::onNext,
+                        responseObserver::onNext, // Send each TLEStreamResponse immediately
                         responseObserver::onError,
                         responseObserver::onCompleted);
+    }
 
-        return new StreamObserver<TLEStreamRequest>() {
-            @Override
-            public void onNext(TLEStreamRequest value) {
-                try {
-                    if (value.hasConfig()) {
-                        configHolder[0] = value.getConfig();
-                    } else if (value.hasTleList()) {
-                        if (configHolder[0] == null) {
-                            log.error("TLE received before config");
-                            responseObserver.onError(new IllegalStateException("Config must be sent before TLEs"));
-                            return;
-                        }
-                        // Submit each TLE in the chunk to the internal publisher
-                        value.getTleList().getLinesList().forEach(publisher::submit);
-                    }
-                } catch (Exception e) {
-                    log.error("Error in onNext: {}", e.getMessage(), e);
-                    responseObserver.onError(e);
+    // Helper method to process a batch of TLEs
+    private List<TLEStreamResponse> processBatch(List<TLELines> chunk, TLEStreamConfig config) {
+        List<TLEStreamResponse> batchResponses = new ArrayList<>(chunk.size());
+
+        for (TLELines tleLines : chunk) {
+            try {
+                // Manually map to internal DTO (since we don't have a direct mapper for
+                // TLELines -> Request)
+                // Reusing the same request builder logic
+
+                tr.com.kadiraydemir.orekit.grpc.TLEPropagateRequest grpcRequest = tr.com.kadiraydemir.orekit.grpc.TLEPropagateRequest
+                        .newBuilder()
+                        .setModel(config.getModel())
+                        .setTleLine1(tleLines.getTleLine1())
+                        .setTleLine2(tleLines.getTleLine2())
+                        .setStartDate(config.getStartDate())
+                        .setEndDate(config.getEndDate())
+                        .setPositionCount(config.getPositionCount())
+                        .setOutputFrame(config.getOutputFrame())
+                        .setIntegrator(config.getIntegrator())
+                        .build();
+
+                // Call propagation service
+                // propagationService.propagateTLE takes the DTO.
+                // propagationMapper.toDTO converts Grpc Request to DTO.
+
+                List<TleResult> results = propagationService.propagateTLE(propagationMapper.toDTO(grpcRequest))
+                        .collect().asList().await().indefinitely();
+
+                if (results != null && !results.isEmpty()) {
+                    TleResult result = results.get(0);
+                    batchResponses.add(TLEStreamResponse.newBuilder()
+                            .setSatelliteId(extractSatelliteId(tleLines.getTleLine1()))
+                            .addAllPositions(result.positions().stream()
+                                    .map(p -> PositionPoint.newBuilder()
+                                            .setX(p.x())
+                                            .setY(p.y())
+                                            .setZ(p.z())
+                                            .setTimestamp(p.timestamp())
+                                            .build())
+                                    .toList())
+                            .setFrame(result.frame())
+                            .build());
                 }
+            } catch (Exception e) {
+                log.error("Error processing TLE in batch: {}", tleLines.getTleLine1(), e);
+                batchResponses.add(TLEStreamResponse.newBuilder()
+                        .setSatelliteId(extractSatelliteId(tleLines.getTleLine1()))
+                        .setError(e.getMessage())
+                        .build());
             }
-
-            @Override
-            public void onError(Throwable t) {
-                log.error("Stream error: {}", t.getMessage(), t);
-                publisher.closeExceptionally(t);
-            }
-
-            @Override
-            public void onCompleted() {
-                publisher.close();
-            }
-        };
+        }
+        return batchResponses;
     }
 
     private int extractSatelliteId(String line1) {
