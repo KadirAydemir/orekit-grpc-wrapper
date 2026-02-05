@@ -6,13 +6,11 @@ import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 import org.mapstruct.ValueMapping;
 import tr.com.kadiraydemir.orekit.grpc.PositionPoint;
-import tr.com.kadiraydemir.orekit.grpc.PropagateRequest;
 import tr.com.kadiraydemir.orekit.grpc.PropagateResponse;
-import tr.com.kadiraydemir.orekit.grpc.TLEPropagateRequest;
 import tr.com.kadiraydemir.orekit.grpc.TLEPropagateResponse;
 import tr.com.kadiraydemir.orekit.model.OrbitResult;
-import tr.com.kadiraydemir.orekit.model.PropagateRequestDTO;
-import tr.com.kadiraydemir.orekit.model.TLEPropagateRequestDTO;
+import tr.com.kadiraydemir.orekit.model.PropagateRequest;
+import tr.com.kadiraydemir.orekit.model.TLEPropagateRequest;
 import tr.com.kadiraydemir.orekit.model.TleResult;
 import tr.com.kadiraydemir.orekit.grpc.PropagationModel;
 import tr.com.kadiraydemir.orekit.model.PropagationModelType;
@@ -30,9 +28,9 @@ public interface PropagationMapper {
 
     PositionPoint map(TleResult.PositionPointResult source);
 
-    PropagateRequestDTO toDTO(PropagateRequest source);
+    PropagateRequest toDTO(tr.com.kadiraydemir.orekit.grpc.PropagateRequest source);
 
-    TLEPropagateRequestDTO toDTO(TLEPropagateRequest source);
+    TLEPropagateRequest toDTO(tr.com.kadiraydemir.orekit.grpc.TLEPropagateRequest source);
 
     @ValueMapping(source = "UNRECOGNIZED", target = "AUTO")
     PropagationModelType map(PropagationModel source);

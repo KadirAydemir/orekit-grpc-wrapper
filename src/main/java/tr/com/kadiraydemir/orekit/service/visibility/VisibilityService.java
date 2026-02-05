@@ -1,6 +1,6 @@
 package tr.com.kadiraydemir.orekit.service.visibility;
 
-import tr.com.kadiraydemir.orekit.model.AccessIntervalsRequestDTO;
+import tr.com.kadiraydemir.orekit.model.AccessIntervalsRequest;
 import tr.com.kadiraydemir.orekit.model.VisibilityResult;
 
 /**
@@ -14,5 +14,5 @@ public interface VisibilityService {
      * @param request the access intervals request
      * @return the access intervals result
      */
-    VisibilityResult getAccessIntervals(AccessIntervalsRequestDTO request);
+    VisibilityResult getAccessIntervals(AccessIntervalsRequest request);
 }
