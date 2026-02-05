@@ -43,5 +43,4 @@ nb-configuration.xml
 /.quarkus/cli/plugins/
 
 # Performance Tests
-performance-tests/*.json
-!performance-tests/ghz-config.json
+performance-tests/
