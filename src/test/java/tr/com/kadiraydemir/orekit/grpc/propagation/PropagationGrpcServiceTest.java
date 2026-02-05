@@ -2,6 +2,7 @@ package tr.com.kadiraydemir.orekit.grpc.propagation;
 
 import io.quarkus.grpc.GrpcClient;
 import io.quarkus.test.junit.QuarkusTest;
+import io.smallrye.mutiny.Multi;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import tr.com.kadiraydemir.orekit.grpc.*;
@@ -67,5 +68,54 @@ public class PropagationGrpcServiceTest {
                 System.out.println(
                                 "Propagated Position: " + response.getPosX() + ", " + response.getPosY() + ", "
                                                 + response.getPosZ());
+        }
+
+        @Test
+        public void testPropagateTLEStream() {
+                String line1 = "1 25544U 98067A   24001.00000000  .00016717  00000-0  10270-3 0  9991";
+                String line2 = "2 25544  51.6444  20.0000 0005000  0.0000  50.0000 15.50000000 10005";
+
+                // First message: Config
+                TLEStreamConfig config = TLEStreamConfig.newBuilder()
+                                .setModel(PropagationModel.SGP4)
+                                .setStartDate("2024-01-01T12:00:00Z")
+                                .setEndDate("2024-01-01T13:00:00Z")
+                                .setPositionCount(5)
+                                .setOutputFrame(ReferenceFrame.TEME)
+                                .setIntegrator(IntegratorType.DORMAND_PRINCE_853)
+                                .build();
+
+                TLEStreamRequest configRequest = TLEStreamRequest.newBuilder()
+                                .setConfig(config)
+                                .build();
+
+                // Subsequent messages: TLEs
+                TLELines tle1 = TLELines.newBuilder()
+                                .setTleLine1(line1)
+                                .setTleLine2(line2)
+                                .build();
+
+                TLEStreamRequest tleRequest1 = TLEStreamRequest.newBuilder()
+                                .setTle(tle1)
+                                .build();
+
+                TLEStreamRequest tleRequest2 = TLEStreamRequest.newBuilder()
+                                .setTle(tle1)
+                                .build();
+
+                Multi<TLEStreamRequest> requests = Multi.createFrom().items(configRequest, tleRequest1, tleRequest2);
+
+                List<TLEStreamResponse> responses = orbitalService.propagateTLEStream(requests)
+                                .collect().asList()
+                                .await().atMost(Duration.ofSeconds(30));
+
+                Assertions.assertNotNull(responses);
+                // We sent 2 TLEs, expect 2 responses
+                Assertions.assertEquals(2, responses.size());
+
+                int totalPositions = responses.stream()
+                                .mapToInt(r -> r.getPositionsCount())
+                                .sum();
+                Assertions.assertEquals(10, totalPositions);
         }
 }

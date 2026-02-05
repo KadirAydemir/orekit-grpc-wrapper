@@ -1,212 +1,116 @@
-# Project: Orekit gRPC Wrapper
+# Orekit gRPC Wrapper - Essential Guidelines
 
-## Overview
-High-performance gRPC wrapper for the Orekit space flight dynamics library.
-Built with Quarkus and GraalVM Native Image.
+Quick reference for agentic coding agents. For advanced topics, see `agent-advanced.md`.
 
-- Java Version: 25 (FINAL features only)
-- Framework: Quarkus
-- Build Tool: Maven (./mvnw)
+## Build Commands
 
-IMPORTANT:
-- maven.compiler.release MUST be 25
-- Preview or incubator features are FORBIDDEN
-- If a feature requires --enable-preview, it must NOT be used
+```bash
+./mvnw clean install                    # Build and install
+./mvnw test                             # Run all tests
+./mvnw test -Dtest=ClassName            # Single test class
+./mvnw test -Dtest=ClassName#method     # Single test method
+./mvnw clean install -DskipTests        # Skip tests
+./mvnw verify -Pnative                  # Integration tests
+./mvnw quarkus:dev                      # Development mode
+./mvnw package -Dnative                 # Native image
+./mvnw package -Dquarkus.package.type=uber-jar  # Uber-jar
+./mvnw jacoco:report                    # Coverage report
+```
 
----
+## Critical Rules
 
-## Architecture & Code Structure
+### Java & Build
+- Java 25 (FINAL features only)
+- Preview/incubator features FORBIDDEN
+- Use `./mvnw` (Maven wrapper)
 
-Source Root:
-- src/main/java/tr/com/kadiraydemir/orekit/grpc
+### Code Style
+- NO wildcard imports
+- Indent: 4 spaces
+- Max method length: 30 lines
+- Opening brace on same line
+- Always use braces for control structures
 
-Packages:
-- Service layer:
-  tr.com.kadiraydemir.orekit.service.<domain>
-  (propagation, visibility, transformation, frame, etc.)
+### Naming
+- Classes: `PascalCase`
+- Methods/variables: `camelCase`
+- Constants: `UPPER_SNAKE_CASE`
+- Packages: lowercase
 
-- gRPC layer:
-  tr.com.kadiraydemir.orekit.grpc.<domain>
+### Types & Data Modeling
+- Use `record` for: DTOs, API request/response objects, immutable values
+- Use `class` for: domain models with behavior, stateful objects
+- NO Lombok for DTOs if record is applicable
+- DTOs must NOT have 'Dto' or 'DTO' suffix
+- Explicit types in public APIs (no `var` in signatures)
 
-- Tests:
-  Must mirror source package structure exactly
+### Dependency Injection
+```java
+// Prefer package-private field injection (required for JaCoCo)
+@Inject
+FrameService frameService;
 
-Rules:
-- Do NOT dump classes into root service or grpc packages
-- Keep domain boundaries explicit
+// Constructor injection ONLY if explicitly requested
+```
 
----
-
-## Data Modeling Rules
-
-- Use record for:
-  - DTOs
-  - API request / response objects
-  - gRPC mapping targets
-  - Immutable value objects
-
-- Use class for:
-  - Domain models with behavior
-  - Stateful or mutable lifecycle objects
-
-- Records:
-  - May define compact constructors for validation
-  - Must remain immutable
-
-- Do NOT use Lombok for DTOs if record is applicable
-- DTOs must NOT have a 'Dto' or 'DTO' suffix
-
----
-
-## gRPC & Service Layer Rules
-
+### Architecture
+- Service layer: `tr.com.kadiraydemir.orekit.service.<domain>`
+- gRPC layer: `tr.com.kadiraydemir.orekit.grpc.<domain>`
 - Service layer MUST NOT expose gRPC generated classes
-- gRPC classes (*GrpcService) are mapping layers only
-- No business logic in gRPC layer
+- Tests must mirror source package structure exactly
+- NO business logic in gRPC layer
 
----
+### Error Handling
+```java
+// Prefer domain-specific unchecked exceptions
+throw new OrekitException("Propagation failed: " + e.getMessage(), e);
 
-## Mapping Rules
+// NEVER throw generic RuntimeException
+// gRPC status mapping happens ONLY in gRPC layer
+```
 
-- gRPC ↔ domain mapping must be explicit and isolated
-- Mapping code must be side-effect free
-- No validation or business logic inside mappers
+### Concurrency
+- Blocking operations MUST run on virtual threads (`@RunOnVirtualThread`)
+- Optimize lists: `new ArrayList<>(Math.max(0, expectedSize))`
 
----
+### Testing
+- Use JUnit 5 with `@QuarkusTest`
+- Extended timeouts: `Duration.ofSeconds(30)`
+- Health checks: `@Inject @Liveness`
+- Prefer integration tests over mocking
+- Use `@Timeout` and `@DisplayName` annotations
 
-## Concurrency & Performance
-
-- Blocking operations MUST run on virtual threads
-  - Prefer @RunOnVirtualThread
-  - Avoid worker pools unless virtual threads are impossible
-
-- Use non-blocking stubs to parallelize RPC calls
-- Provide custom executors with bounded thread limits
-
-- Optimize lists:
-  - new ArrayList<>(Math.max(0, expectedSize))
-
----
-
-## GraalVM Native Image Rules
-
-- Avoid reflection unless explicitly required
-- Avoid dynamic classloading
-- Keep initialization deterministic
-- No runtime scanning assumptions
-
----
-
-## Determinism & Numerical Safety
-
-- Avoid non-deterministic APIs (e.g., unordered parallel streams)
-- Explicitly define iteration order when order matters
+### Numerical Safety
+- Avoid non-deterministic APIs (unordered parallel streams)
 - Avoid direct double equality comparisons
 - Prefer tolerance-based comparisons
 - Time calculations must be explicit about units
-- Assume IEEE-754 semantics
 
----
-
-## Dependency Injection (Quarkus-specific)
-
-- Prefer package-private field injection:
-  @Inject MyService service;
-
-Reason:
-- Required for stable JaCoCo coverage with Quarkus bytecode generation
-
-- Constructor injection ONLY if explicitly requested
-
----
-
-## Testing Rules
-
-- Use JUnit 5
-- Use extended timeouts for Orekit initialization:
-  Duration.ofSeconds(30) or more if required
-
-- Health checks:
-  Always inject with explicit qualifier:
-  @Inject @Liveness
-
-- Prefer integration tests over excessive mocking
-
----
-
-## Error Handling Rules
-
-- Prefer domain-specific unchecked exceptions
-- Do NOT throw generic RuntimeException
-- gRPC status mapping happens ONLY in gRPC layer
-
----
-
-## Logging Rules
-
-- Use structured logging where possible
+### Logging
+- Use structured logging
 - Do NOT log large objects or Orekit internal state
-- Avoid logging inside tight loops
+- Never log TLE lines (may contain classified data)
+- Avoid logging in tight loops
 
----
+### GraalVM Native Image
+- Avoid reflection unless required
+- Avoid dynamic classloading
+- Keep initialization deterministic
 
-## API Evolution Rules
+## Change Rules (CRITICAL)
 
-- Do NOT introduce breaking changes without explicit request
-- New fields in DTOs must be backward-compatible
-- gRPC contract changes require justification
-
----
-
-## Coding Standards
-
-- Prefer immutability
-- No wildcard imports
-- Explicit types in public APIs
-- Method length <= 30 lines unless justified
+- Modify only what is necessary
+- Do NOT refactor unless explicitly asked
+- STOP and ask if change impacts multiple packages
+- STOP and ask if requirements are ambiguous
+- STOP and ask before introducing new dependencies
+- Do NOT rewrite entire classes for small changes
 - Minimal diffs only
 
----
+## Quick Reference
 
-## Change Scope & Failsafe Rules (CRITICAL)
+**Proto files:** `src/main/proto/`  
+**Config:** `application.properties`  
+**Health endpoints:** `/q/health`, `/q/health/live`, `/q/health/ready`
 
-- Modify only what is necessary for the requested task
-- Do NOT refactor unless explicitly asked
-- If a change impacts multiple packages, STOP and ask
-- If requirements are ambiguous, STOP and ask
-- Do NOT guess orbital mechanics behavior
-
----
-
-## Agent Behavior Rules
-
-- Do NOT introduce new libraries without approval
-- Do NOT rewrite entire classes for small changes
-- Explain reasoning briefly and concisely
-
----
-
-## Token Economy & File Constraints (CRITICAL)
-
-IGNORED FILES / DIRECTORIES:
-- orekit-data.zip
-- target/
-- .mvn/
-- .git/
-- *.jar, *.class, *.zip, *.geoid
-- mvnw, mvnw.cmd (unless wrapper debugging)
-
-Exploration Rules:
-- Never scan entire repository
-- List only specific directories when needed
-- Read only relevant .java, pom.xml, and config files
-
----
-
-## Commands
-
-- Build: ./mvnw clean install
-- Test: ./mvnw test
-
-Code Style:
-- Always use imports (no fully qualified names in code)
+For detailed guidelines on Protobuf, Lombok, Health Checks, Configuration, and CI/CD, see `agent-advanced.md`.
