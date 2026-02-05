@@ -55,7 +55,9 @@ public class PropagationGrpcService extends OrbitalServiceGrpc.OrbitalServiceImp
     @Override
     public StreamObserver<TLEStreamRequest> propagateTLEStream(StreamObserver<TLEStreamResponse> responseObserver) {
         final TLEStreamConfig[] configHolder = new TLEStreamConfig[1];
-        SubmissionPublisher<TLELines> publisher = new SubmissionPublisher<>(propagationExecutor, 256);
+        // Buffer size increased to 32768 (2^15) to handle large bursts (approx 30k
+        // satellites) without blocking
+        SubmissionPublisher<TLELines> publisher = new SubmissionPublisher<>(propagationExecutor, 32768);
 
         Multi.createFrom().publisher(publisher)
                 .flatMap(tleLines -> {
