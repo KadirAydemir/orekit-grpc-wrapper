@@ -6,6 +6,7 @@ import io.smallrye.common.annotation.RunOnVirtualThread;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
 import lombok.extern.slf4j.Slf4j;
+import tr.com.kadiraydemir.orekit.mapper.TransformationMapper;
 import tr.com.kadiraydemir.orekit.service.transformation.TransformationService;
 import tr.com.kadiraydemir.orekit.grpc.*;
 
@@ -20,24 +21,17 @@ public class TransformationGrpcService implements CoordinateTransformService {
     TransformationService transformationService;
 
     @Inject
+    TransformationMapper transformationMapper;
+
+    @Inject
     @Named("propagationExecutor")
     ExecutorService propagationExecutor;
 
     @Override
     public Uni<TransformResponse> transform(TransformRequest request) {
         return Uni.createFrom().item(() -> {
-            var result = transformationService.transform(request);
-            return TransformResponse.newBuilder()
-                    .setSourceFrame(ReferenceFrame.valueOf(result.sourceFrame()))
-                    .setTargetFrame(ReferenceFrame.valueOf(result.targetFrame()))
-                    .setEpochIso(result.epochIso())
-                    .setX(result.x())
-                    .setY(result.y())
-                    .setZ(result.z())
-                    .setVx(result.vx())
-                    .setVy(result.vy())
-                    .setVz(result.vz())
-                    .build();
+            var result = transformationService.transform(transformationMapper.toDTO(request));
+            return transformationMapper.map(result);
         })
         .runSubscriptionOn(propagationExecutor);
     }

@@ -7,6 +7,7 @@ import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
 import lombok.extern.slf4j.Slf4j;
+import tr.com.kadiraydemir.orekit.mapper.VisibilityMapper;
 import tr.com.kadiraydemir.orekit.grpc.*;
 
 import java.util.concurrent.ExecutorService;
@@ -20,12 +21,15 @@ public class VisibilityGrpcService extends VisibilityServiceGrpc.VisibilityServi
     tr.com.kadiraydemir.orekit.service.visibility.VisibilityService visibilityService;
 
     @Inject
+    VisibilityMapper visibilityMapper;
+
+    @Inject
     @Named("propagationExecutor")
     ExecutorService propagationExecutor;
 
     @Override
     public void getAccessIntervals(AccessIntervalsRequest request, StreamObserver<AccessIntervalsResponse> responseObserver) {
-        Uni.createFrom().item(() -> visibilityService.getAccessIntervals(request))
+        Uni.createFrom().item(() -> visibilityService.getAccessIntervals(visibilityMapper.toDTO(request)))
                 .runSubscriptionOn(propagationExecutor)
                 .map(result -> {
                     var intervals = result.intervals().stream()

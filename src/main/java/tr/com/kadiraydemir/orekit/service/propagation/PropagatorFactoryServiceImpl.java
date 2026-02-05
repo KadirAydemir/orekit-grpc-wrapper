@@ -22,8 +22,8 @@ import org.orekit.propagation.numerical.NumericalPropagator;
 import org.orekit.utils.Constants;
 import org.orekit.utils.IERSConventions;
 import org.orekit.utils.PVCoordinates;
-import tr.com.kadiraydemir.orekit.grpc.IntegratorType;
-import tr.com.kadiraydemir.orekit.grpc.PropagationModel;
+import tr.com.kadiraydemir.orekit.model.IntegratorType;
+import tr.com.kadiraydemir.orekit.model.PropagationModelType;
 
 /**
  * Implementation of PropagatorFactoryService for creating propagators
@@ -39,10 +39,10 @@ public class PropagatorFactoryServiceImpl implements PropagatorFactoryService {
     IntegratorService integratorService;
 
     @Override
-    public Propagator createPropagator(TLE tle, PropagationModel model, IntegratorType integratorType,
+    public Propagator createPropagator(TLE tle, PropagationModelType model, IntegratorType integratorType,
             Frame temeFrame) {
         if (model == null) {
-            model = PropagationModel.AUTO;
+            model = PropagationModelType.AUTO;
         }
 
         return switch (model) {

@@ -13,7 +13,7 @@ import org.orekit.orbits.OrbitType;
 import org.orekit.orbits.PositionAngleType;
 import org.orekit.propagation.CartesianToleranceProvider;
 import org.orekit.propagation.ToleranceProvider;
-import tr.com.kadiraydemir.orekit.grpc.IntegratorType;
+import tr.com.kadiraydemir.orekit.model.IntegratorType;
 
 /**
  * Implementation of IntegratorService for creating numerical integrators

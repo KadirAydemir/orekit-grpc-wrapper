@@ -8,7 +8,7 @@ import org.orekit.frames.FramesFactory;
 import org.orekit.frames.TopocentricFrame;
 import org.orekit.utils.Constants;
 import org.orekit.utils.IERSConventions;
-import tr.com.kadiraydemir.orekit.grpc.ReferenceFrame;
+import tr.com.kadiraydemir.orekit.model.ReferenceFrameType;
 
 /**
  * Implementation of FrameService for resolving reference frames
@@ -17,7 +17,7 @@ import tr.com.kadiraydemir.orekit.grpc.ReferenceFrame;
 public class FrameServiceImpl implements FrameService {
 
     @Override
-    public Frame resolveFrame(ReferenceFrame referenceFrame) {
+    public Frame resolveFrame(ReferenceFrameType referenceFrame) {
         if (referenceFrame == null) {
             return FramesFactory.getTEME(); // Default
         }
@@ -26,7 +26,6 @@ public class FrameServiceImpl implements FrameService {
             case GCRF -> FramesFactory.getGCRF();
             case EME2000 -> FramesFactory.getEME2000();
             case ITRF -> FramesFactory.getITRF(IERSConventions.IERS_2010, true);
-            default -> FramesFactory.getTEME();
         };
     }
 

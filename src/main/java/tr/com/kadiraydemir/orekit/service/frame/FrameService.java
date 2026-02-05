@@ -2,7 +2,7 @@ package tr.com.kadiraydemir.orekit.service.frame;
 
 import org.orekit.frames.Frame;
 import org.orekit.frames.TopocentricFrame;
-import tr.com.kadiraydemir.orekit.grpc.ReferenceFrame;
+import tr.com.kadiraydemir.orekit.model.ReferenceFrameType;
 
 /**
  * Service for resolving reference frames
@@ -10,12 +10,12 @@ import tr.com.kadiraydemir.orekit.grpc.ReferenceFrame;
 public interface FrameService {
 
     /**
-     * Resolve gRPC ReferenceFrame enum to Orekit Frame
+     * Resolve ReferenceFrameType enum to Orekit Frame
      * 
-     * @param referenceFrame the requested reference frame
+     * @param referenceFrame the requested reference frame type
      * @return the corresponding Orekit Frame
      */
-    Frame resolveFrame(ReferenceFrame referenceFrame);
+    Frame resolveFrame(ReferenceFrameType referenceFrame);
 
     /**
      * Get the TEME frame (used as native TLE frame)
