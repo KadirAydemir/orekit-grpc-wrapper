@@ -22,7 +22,7 @@ import org.orekit.utils.Constants;
 import org.orekit.utils.IERSConventions;
 import org.orekit.utils.OccultationEngine;
 
-import tr.com.kadiraydemir.orekit.grpc.EclipseRequest;
+import tr.com.kadiraydemir.orekit.model.EclipseRequestDTO;
 import tr.com.kadiraydemir.orekit.model.EclipseIntervalResult;
 import tr.com.kadiraydemir.orekit.model.EclipseResult;
 
@@ -30,14 +30,14 @@ import tr.com.kadiraydemir.orekit.model.EclipseResult;
 public class EclipseServiceImpl implements EclipseService {
 
     @Override
-    public EclipseResult calculateEclipses(EclipseRequest request) {
+    public EclipseResult calculateEclipses(EclipseRequestDTO request) {
         // 1. Setup TLE
-        TLE tle = new TLE(request.getTleLine1(), request.getTleLine2());
+        TLE tle = new TLE(request.tleLine1(), request.tleLine2());
         TLEPropagator propagator = TLEPropagator.selectExtrapolator(tle);
 
         // 2. Setup Reference Dates
-        AbsoluteDate startDate = new AbsoluteDate(request.getStartDateIso(), TimeScalesFactory.getUTC());
-        AbsoluteDate endDate = new AbsoluteDate(request.getEndDateIso(), TimeScalesFactory.getUTC());
+        AbsoluteDate startDate = new AbsoluteDate(request.startDateIso(), TimeScalesFactory.getUTC());
+        AbsoluteDate endDate = new AbsoluteDate(request.endDateIso(), TimeScalesFactory.getUTC());
 
         // 3. Setup Bodies
         CelestialBody sun = CelestialBodyFactory.getSun();
