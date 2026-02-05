@@ -40,8 +40,7 @@ public class PropagationGrpcService extends OrbitalServiceGrpc.OrbitalServiceImp
                             responseObserver.onNext(response);
                             responseObserver.onCompleted();
                         },
-                        responseObserver::onError
-                );
+                        responseObserver::onError);
     }
 
     @Override
@@ -50,8 +49,7 @@ public class PropagationGrpcService extends OrbitalServiceGrpc.OrbitalServiceImp
                 .subscribe().with(
                         result -> responseObserver.onNext(propagationMapper.map(result)),
                         responseObserver::onError,
-                        responseObserver::onCompleted
-                );
+                        responseObserver::onCompleted);
     }
 
     @Override
@@ -62,7 +60,7 @@ public class PropagationGrpcService extends OrbitalServiceGrpc.OrbitalServiceImp
         Multi.createFrom().publisher(publisher)
                 .flatMap(tleLines -> {
                     if (configHolder[0] == null) {
-                        return Multi.createFrom().failure(
+                        return Multi.createFrom().<TLEStreamResponse>failure(
                                 new IllegalStateException("Config must be sent before TLEs"));
                     }
                     try {
@@ -102,8 +100,7 @@ public class PropagationGrpcService extends OrbitalServiceGrpc.OrbitalServiceImp
                 .subscribe().with(
                         responseObserver::onNext,
                         responseObserver::onError,
-                        responseObserver::onCompleted
-                );
+                        responseObserver::onCompleted);
 
         return new StreamObserver<TLEStreamRequest>() {
             @Override
