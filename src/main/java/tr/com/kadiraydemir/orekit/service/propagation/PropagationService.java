@@ -12,6 +12,4 @@ public interface PropagationService {
     OrbitResult propagate(PropagateRequest request);
 
     Multi<TleResult> propagateTLE(TLEPropagateRequest request);
-
-    void propagateTLEBlocking(TLEPropagateRequest request, Consumer<TleResult> consumer);
 }
