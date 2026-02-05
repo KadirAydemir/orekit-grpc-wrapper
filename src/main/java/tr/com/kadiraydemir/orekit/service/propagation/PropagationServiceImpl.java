@@ -26,6 +26,8 @@ import tr.com.kadiraydemir.orekit.model.TLEPropagateRequest;
 import tr.com.kadiraydemir.orekit.model.TleResult;
 import tr.com.kadiraydemir.orekit.service.frame.FrameService;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import io.smallrye.mutiny.Multi;
 
@@ -113,19 +115,21 @@ public class PropagationServiceImpl implements PropagationService {
             String frameName = outputFrame.getName();
             TimeScale utc = TimeScalesFactory.getUTC();
 
-            return Multi.createFrom().range(0, positionCount)
+            return Multi.createFrom().item(request)
                     .emitOn(propagationExecutor)
-                    .map(i -> {
-                        AbsoluteDate currentDate = startDate.shiftedBy(i * timeStep);
-                        PVCoordinates pv = propagator.getPVCoordinates(currentDate, outputFrame);
-                        return new TleResult.PositionPointResult(
-                                pv.getPosition().getX(),
-                                pv.getPosition().getY(),
-                                pv.getPosition().getZ(),
-                                currentDate.toString(utc));
-                    })
-                    .group().intoLists().of(100)
-                    .map(positions -> new TleResult(positions, frameName));
+                    .map(req -> {
+                        List<TleResult.PositionPointResult> positions = new ArrayList<>(positionCount);
+                        for (int i = 0; i < positionCount; i++) {
+                            AbsoluteDate currentDate = startDate.shiftedBy(i * timeStep);
+                            PVCoordinates pv = propagator.getPVCoordinates(currentDate, outputFrame);
+                            positions.add(new TleResult.PositionPointResult(
+                                    pv.getPosition().getX(),
+                                    pv.getPosition().getY(),
+                                    pv.getPosition().getZ(),
+                                    currentDate.toString(utc)));
+                        }
+                        return new TleResult(positions, frameName);
+                    });
 
         } catch (Exception e) {
             return Multi.createFrom().failure(new OrekitException("TLE Propagation failed: " + e.getMessage(), e));

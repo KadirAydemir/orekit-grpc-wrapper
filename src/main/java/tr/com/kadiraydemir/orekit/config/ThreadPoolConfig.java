@@ -13,10 +13,10 @@ import java.util.concurrent.ForkJoinPool;
 @ApplicationScoped
 public class ThreadPoolConfig {
 
-    @ConfigProperty(name = "orekit.executor.type", defaultValue = "fixed")
+    @ConfigProperty(name = "orekit.executor.type", defaultValue = "forkjoin")
     String executorType;
 
-    @ConfigProperty(name = "orekit.executor.max-threads", defaultValue = "4")
+    @ConfigProperty(name = "orekit.executor.max-threads", defaultValue = "16")
     int maxThreads;
 
     @Produces
