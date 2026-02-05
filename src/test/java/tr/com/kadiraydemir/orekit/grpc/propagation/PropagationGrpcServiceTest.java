@@ -117,5 +117,9 @@ public class PropagationGrpcServiceTest {
                                 .mapToInt(r -> r.getPositionsCount())
                                 .sum();
                 Assertions.assertEquals(10, totalPositions);
+
+                // Verify Satellite ID (Norad ID) extraction
+                Assertions.assertEquals(25544, responses.get(0).getSatelliteId());
+                Assertions.assertEquals(25544, responses.get(1).getSatelliteId());
         }
 }

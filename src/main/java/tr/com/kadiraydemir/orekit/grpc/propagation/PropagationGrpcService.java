@@ -85,8 +85,7 @@ public class PropagationGrpcService extends OrbitalServiceGrpc.OrbitalServiceImp
 
                             publishers.add(propagationService.propagateTLE(propagationMapper.toDTO(request))
                                     .map(result -> TLEStreamResponse.newBuilder()
-                                            .setTleLine1(tleLines.getTleLine1())
-                                            .setTleLine2(tleLines.getTleLine2())
+                                            .setSatelliteId(extractSatelliteId(tleLines.getTleLine1()))
                                             .addAllPositions(result.positions().stream()
                                                     .map(p -> PositionPoint.newBuilder()
                                                             .setX(p.x())
@@ -100,8 +99,7 @@ public class PropagationGrpcService extends OrbitalServiceGrpc.OrbitalServiceImp
                         } catch (Exception e) {
                             log.error("Error processing TLE: {}", tleLines.getTleLine1(), e);
                             publishers.add(Multi.createFrom().item(TLEStreamResponse.newBuilder()
-                                    .setTleLine1(tleLines.getTleLine1())
-                                    .setTleLine2(tleLines.getTleLine2())
+                                    .setSatelliteId(extractSatelliteId(tleLines.getTleLine1()))
                                     .setError(e.getMessage())
                                     .build()));
                         }
@@ -145,5 +143,13 @@ public class PropagationGrpcService extends OrbitalServiceGrpc.OrbitalServiceImp
                 publisher.close();
             }
         };
+    }
+
+    private int extractSatelliteId(String line1) {
+        try {
+            return Integer.parseInt(line1.substring(2, 7).trim());
+        } catch (Exception e) {
+            return 0;
+        }
     }
 }
