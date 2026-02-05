@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package orbital;
+
+option java_multiple_files = true;
+option java_package = "tr.com.kadiraydemir.orekit.grpc";
+option java_outer_classname = "EclipseServiceProto";
+
+service EclipseService {
+  // Calculate eclipse intervals for a satellite
+  rpc CalculateEclipses (EclipseRequest) returns (EclipseResponse) {}
+}
+
+message EclipseRequest {
+  string tle_line1 = 1;
+  string tle_line2 = 2;
+  string start_date_iso = 3;
+  string end_date_iso = 4;
+}
+
+message EclipseResponse {
+    string satellite_name = 1;
+    repeated EclipseInterval intervals = 2;
+}
+
+message EclipseInterval {
+    string start_iso = 1;
+    string end_iso = 2;
+    double duration_seconds = 3;
+}
