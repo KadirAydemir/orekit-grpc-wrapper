@@ -22,7 +22,6 @@ public class PropagationGrpcService extends OrbitalServiceGrpc.OrbitalServiceImp
 
     @Override
     public void propagate(PropagateRequest request, StreamObserver<PropagateResponse> responseObserver) {
-        log.info("Propagate request received");
         try {
             var result = propagationService.propagate(request);
             responseObserver.onNext(propagationMapper.map(result));
@@ -34,14 +33,11 @@ public class PropagationGrpcService extends OrbitalServiceGrpc.OrbitalServiceImp
 
     @Override
     public void propagateTLE(TLEPropagateRequest request, StreamObserver<TLEPropagateResponse> responseObserver) {
-        log.info("TLE Propagate request received");
-        try {
-            propagationService.propagateTLEBlocking(request, result -> {
-                responseObserver.onNext(propagationMapper.map(result));
-            });
-            responseObserver.onCompleted();
-        } catch (Exception e) {
-            responseObserver.onError(e);
-        }
+        propagationService.propagateTLE(request)
+                .subscribe().with(
+                        result -> responseObserver.onNext(propagationMapper.map(result)),
+                        responseObserver::onError,
+                        responseObserver::onCompleted
+                );
     }
 }

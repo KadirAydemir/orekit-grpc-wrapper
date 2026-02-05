@@ -2,6 +2,7 @@ package tr.com.kadiraydemir.orekit.service.propagation;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import org.orekit.frames.Frame;
 import org.orekit.frames.FramesFactory;
 import org.orekit.orbits.KeplerianOrbit;
@@ -23,6 +24,7 @@ import tr.com.kadiraydemir.orekit.model.TleResult;
 import java.util.Collections;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
@@ -38,6 +40,10 @@ public class PropagationServiceImpl implements PropagationService {
 
     @Inject
     PropagatorFactoryService propagatorFactoryService;
+
+    @Inject
+    @Named("propagationExecutor")
+    ExecutorService propagationExecutor;
 
     @Override
     public OrbitResult propagate(PropagateRequest request) {
@@ -108,7 +114,7 @@ public class PropagationServiceImpl implements PropagationService {
             TimeScale utc = TimeScalesFactory.getUTC();
 
             return Multi.createFrom().range(0, positionCount)
-                    .emitOn(Infrastructure.getDefaultWorkerPool())
+                    .emitOn(propagationExecutor)
                     .map(i -> {
                         AbsoluteDate currentDate = startDate.shiftedBy(i * timeStep);
                         PVCoordinates pv = propagator.getPVCoordinates(currentDate, outputFrame);

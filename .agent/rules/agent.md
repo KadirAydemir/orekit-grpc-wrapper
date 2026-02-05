@@ -25,6 +25,8 @@ This is a high-performance gRPC wrapper for the Orekit space flight dynamics lib
   - **Timeouts**: Orekit initialization (loading `orekit-data.zip`) can be slow. Use extended timeouts for tests involving Orekit context (e.g., `Duration.ofSeconds(30)`).
 - **Lombok**: Ensure Lombok version is kept up-to-date (1.18.38+) to support Java 21+ features.
 - **Virtual Threads**: Verify that blocking logic is offloaded to virtual threads using `@RunOnVirtualThread`.
+- **Parallelization**: Use non-blocking stubs to parallelize RPCs.
+- **Custom Executor**: Provide a custom executor that limits the number of threads, based on your workload (cached (default), fixed, forkjoin, etc).
 
 ## Token Economy & File Constraints (CRITICAL)
 To minimize token usage and avoid wasting context window space:
