@@ -20,12 +20,16 @@ import tr.com.kadiraydemir.orekit.exception.OrekitException;
 import tr.com.kadiraydemir.orekit.model.IntegratorType;
 import tr.com.kadiraydemir.orekit.model.OrbitResult;
 import tr.com.kadiraydemir.orekit.model.PropagateRequest;
+import tr.com.kadiraydemir.orekit.model.PropagateTLEListRequest;
 import tr.com.kadiraydemir.orekit.model.PropagationModelType;
 import tr.com.kadiraydemir.orekit.model.ReferenceFrameType;
 import tr.com.kadiraydemir.orekit.model.TLEPropagateRequest;
+import tr.com.kadiraydemir.orekit.model.TleData;
+import tr.com.kadiraydemir.orekit.model.TleIndexedResult;
 import tr.com.kadiraydemir.orekit.model.TleResult;
 import tr.com.kadiraydemir.orekit.service.frame.FrameService;
 
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import io.smallrye.mutiny.Multi;
 
@@ -87,49 +91,74 @@ public class PropagationServiceImpl implements PropagationService {
     public Multi<TleResult> propagateTLE(TLEPropagateRequest request) {
         try {
             TLE tle = new TLE(request.tleLine1(), request.tleLine2());
-            PropagationModelType requestedModel = request.model();
-            ReferenceFrameType requestedFrame = request.outputFrame();
-
-            // Get the output frame (default is TEME)
-            Frame outputFrame = frameService.resolveFrame(requestedFrame);
-
-            // Native TLE frame is always TEME
-            Frame temeFrame = frameService.getTemeFrame();
-
-            // Get integrator type for numerical model
-            IntegratorType integratorType = request.integrator();
-
-            // Create propagator based on model selection
-            Propagator propagator = propagatorFactoryService.createPropagator(
-                    tle, requestedModel, integratorType, temeFrame);
-
             AbsoluteDate startDate = new AbsoluteDate(request.startDate(), TimeScalesFactory.getUTC());
             AbsoluteDate endDate = new AbsoluteDate(request.endDate(), TimeScalesFactory.getUTC());
-            int positionCount = request.positionCount();
-
-            double duration = endDate.durationFrom(startDate);
-            double timeStep = (positionCount > 1) ? duration / (positionCount - 1) : 0;
-
-            String frameName = outputFrame.getName();
-            TimeScale utc = TimeScalesFactory.getUTC();
-
-            return Multi.createFrom().range(0, positionCount)
-                    .emitOn(propagationExecutor)
-                    .map(i -> {
-                        AbsoluteDate currentDate = startDate.shiftedBy(i * timeStep);
-                        PVCoordinates pv = propagator.getPVCoordinates(currentDate, outputFrame);
-                        return new TleResult.PositionPointResult(
-                                pv.getPosition().getX(),
-                                pv.getPosition().getY(),
-                                pv.getPosition().getZ(),
-                                currentDate.toString(utc));
-                    })
-                    .group().intoLists().of(100)
-                    .map(positions -> new TleResult(positions, frameName));
-
+            return propagateSingleTLEInternal(tle, request.model(), request.outputFrame(), request.integrator(),
+                    startDate, endDate, request.positionCount());
         } catch (Exception e) {
             return Multi.createFrom().failure(new OrekitException("TLE Propagation failed: " + e.getMessage(), e));
         }
+    }
+
+    @Override
+    public Multi<TleIndexedResult> propagateTLEList(PropagateTLEListRequest request) {
+        try {
+            List<TleData> tles = request.tles();
+            AbsoluteDate startDate = new AbsoluteDate(request.startDate(), TimeScalesFactory.getUTC());
+            AbsoluteDate endDate = new AbsoluteDate(request.endDate(), TimeScalesFactory.getUTC());
+
+            return Multi.createFrom().range(0, tles.size())
+                    .emitOn(propagationExecutor)
+                    .flatMap(i -> {
+                        try {
+                            TleData tleData = tles.get(i);
+                            TLE tle = new TLE(tleData.line1(), tleData.line2());
+                            return propagateSingleTLEInternal(tle, request.model(), request.outputFrame(),
+                                    request.integrator(), startDate, endDate,
+                                    request.positionCount())
+                                    .map(result -> new TleIndexedResult(i, result.positions(), result.frame()));
+                        } catch (Exception e) {
+                            return Multi.createFrom().failure(new OrekitException("Single TLE propagation in list failed: " + e.getMessage(), e));
+                        }
+                    });
+
+        } catch (Exception e) {
+            return Multi.createFrom().failure(new OrekitException("TLE List Propagation failed: " + e.getMessage(), e));
+        }
+    }
+
+    private Multi<TleResult> propagateSingleTLEInternal(TLE tle, PropagationModelType requestedModel,
+            ReferenceFrameType requestedFrame, IntegratorType integratorType, AbsoluteDate startDate, AbsoluteDate endDate,
+            int positionCount) {
+        // Get the output frame (default is TEME)
+        Frame outputFrame = frameService.resolveFrame(requestedFrame);
+
+        // Native TLE frame is always TEME
+        Frame temeFrame = frameService.getTemeFrame();
+
+        // Create propagator based on model selection
+        Propagator propagator = propagatorFactoryService.createPropagator(
+                tle, requestedModel, integratorType, temeFrame);
+
+        double duration = endDate.durationFrom(startDate);
+        double timeStep = (positionCount > 1) ? duration / (positionCount - 1) : 0;
+
+        String frameName = outputFrame.getName();
+        TimeScale utc = TimeScalesFactory.getUTC();
+
+        return Multi.createFrom().range(0, positionCount)
+                .emitOn(propagationExecutor)
+                .map(i -> {
+                    AbsoluteDate currentDate = startDate.shiftedBy(i * timeStep);
+                    PVCoordinates pv = propagator.getPVCoordinates(currentDate, outputFrame);
+                    return new TleResult.PositionPointResult(
+                            pv.getPosition().getX(),
+                            pv.getPosition().getY(),
+                            pv.getPosition().getZ(),
+                            currentDate.toString(utc));
+                })
+                .group().intoLists().of(100)
+                .map(positions -> new TleResult(positions, frameName));
     }
 
 }

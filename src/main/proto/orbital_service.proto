@@ -35,6 +35,7 @@ enum ReferenceFrame {
 service OrbitalService {
   rpc Propagate (PropagateRequest) returns (PropagateResponse) {}
   rpc PropagateTLE (TLEPropagateRequest) returns (stream TLEPropagateResponse) {}
+  rpc PropagateTLEList (PropagateTLEListRequest) returns (stream TLEListPropagateResponse) {}
 }
 
 message PropagateRequest {
@@ -82,4 +83,25 @@ message PositionPoint {
 message TLEPropagateResponse {
   repeated PositionPoint positions = 1;
   string frame = 2; // Reference frame name (applies to all positions)
+}
+
+message TLE {
+  string line1 = 1;
+  string line2 = 2;
+}
+
+message PropagateTLEListRequest {
+  PropagationModel model = 1;
+  repeated TLE tles = 2;
+  string start_date = 3;
+  string end_date = 4;
+  int32 position_count = 5;
+  ReferenceFrame output_frame = 6;
+  IntegratorType integrator = 7;
+}
+
+message TLEListPropagateResponse {
+  int32 tle_index = 1;
+  repeated PositionPoint positions = 2;
+  string frame = 3;
 }

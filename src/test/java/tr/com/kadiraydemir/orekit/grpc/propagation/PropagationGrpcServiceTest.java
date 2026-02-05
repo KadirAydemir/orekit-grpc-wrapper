@@ -44,6 +44,43 @@ public class PropagationGrpcServiceTest {
         }
 
         @Test
+        public void testPropagateTLEList() {
+                String line1 = "1 25544U 98067A   24001.00000000  .00016717  00000-0  10270-3 0  9991";
+                String line2 = "2 25544  51.6444  20.0000 0005000  0.0000  50.0000 15.50000000 10005";
+
+                // Use same TLE twice
+                TLE tle = TLE.newBuilder().setLine1(line1).setLine2(line2).build();
+
+                PropagateTLEListRequest request = PropagateTLEListRequest.newBuilder()
+                                .addTles(tle)
+                                .addTles(tle)
+                                .setStartDate("2024-01-01T12:00:00Z")
+                                .setEndDate("2024-01-01T13:00:00Z") // 1 hour
+                                .setPositionCount(10)
+                                .setOutputFrame(ReferenceFrame.TEME)
+                                .build();
+
+                List<TLEListPropagateResponse> responses = orbitalService.propagateTLEList(request)
+                                .collect().asList()
+                                .await().atMost(Duration.ofSeconds(30));
+
+                Assertions.assertNotNull(responses);
+                Assertions.assertFalse(responses.isEmpty());
+
+                // We expect results for 2 TLEs.
+                // Each TLE propagation returns batched positions.
+                // We can group by index to verify.
+
+                long tle0Count = responses.stream().filter(r -> r.getTleIndex() == 0).mapToInt(r -> r.getPositionsCount())
+                                .sum();
+                long tle1Count = responses.stream().filter(r -> r.getTleIndex() == 1).mapToInt(r -> r.getPositionsCount())
+                                .sum();
+
+                Assertions.assertEquals(10, tle0Count);
+                Assertions.assertEquals(10, tle1Count);
+        }
+
+        @Test
         public void testPropagation() {
                 PropagateRequest request = PropagateRequest.newBuilder()
                                 .setSatelliteName("TestSat")

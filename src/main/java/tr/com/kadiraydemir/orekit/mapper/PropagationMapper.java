@@ -11,6 +11,9 @@ import tr.com.kadiraydemir.orekit.grpc.TLEPropagateResponse;
 import tr.com.kadiraydemir.orekit.model.OrbitResult;
 import tr.com.kadiraydemir.orekit.model.PropagateRequest;
 import tr.com.kadiraydemir.orekit.model.TLEPropagateRequest;
+import tr.com.kadiraydemir.orekit.model.PropagateTLEListRequest;
+import tr.com.kadiraydemir.orekit.model.TleData;
+import tr.com.kadiraydemir.orekit.model.TleIndexedResult;
 import tr.com.kadiraydemir.orekit.model.TleResult;
 import tr.com.kadiraydemir.orekit.grpc.PropagationModel;
 import tr.com.kadiraydemir.orekit.model.PropagationModelType;
@@ -31,6 +34,14 @@ public interface PropagationMapper {
     PropagateRequest toDTO(tr.com.kadiraydemir.orekit.grpc.PropagateRequest source);
 
     TLEPropagateRequest toDTO(tr.com.kadiraydemir.orekit.grpc.TLEPropagateRequest source);
+
+    @Mapping(target = "tles", source = "tlesList")
+    PropagateTLEListRequest toDTO(tr.com.kadiraydemir.orekit.grpc.PropagateTLEListRequest source);
+
+    TleData map(tr.com.kadiraydemir.orekit.grpc.TLE source);
+
+    @Mapping(target = "positionsList", source = "positions")
+    tr.com.kadiraydemir.orekit.grpc.TLEListPropagateResponse map(TleIndexedResult source);
 
     @ValueMapping(source = "UNRECOGNIZED", target = "AUTO")
     PropagationModelType map(PropagationModel source);
