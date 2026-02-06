@@ -28,6 +28,8 @@ public class ThreadPoolConfig {
                 return Executors.newFixedThreadPool(maxThreads);
             case "forkjoin":
                 return new ForkJoinPool(maxThreads);
+            case "virtual":
+                return Executors.newVirtualThreadPerTaskExecutor();
             case "cached":
             default:
                 return Executors.newCachedThreadPool();

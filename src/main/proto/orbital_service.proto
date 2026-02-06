@@ -36,7 +36,7 @@ service OrbitalService {
   rpc Propagate (PropagateRequest) returns (PropagateResponse) {}
   rpc PropagateTLE (TLEPropagateRequest) returns (stream TLEPropagateResponse) {}
   // Bulk Input -> Stream Output
-  rpc PropagateTLEList (TLEListRequest) returns (stream TLEStreamResponse) {}
+  rpc PropagateTLEList (TLEListRequest) returns (stream TLEListResponse) {}
 }
 
 message PropagateRequest {
@@ -86,28 +86,24 @@ message TLEPropagateResponse {
   string frame = 2; // Reference frame name (applies to all positions)
 }
 
-message TLEStreamConfig {
+message TLELines {
+  string tle_line1 = 1;
+  string tle_line2 = 2;
+}
+
+message TLEListResponse {
+  int32 satellite_id = 1;
+  repeated PositionPoint positions = 2;
+  string frame = 3;
+  string error = 4;
+}
+
+message TLEListRequest {
   PropagationModel model = 1;
   string start_date = 2; // ISO-8601
   string end_date = 3; // ISO-8601
   int32 position_count = 4;
   ReferenceFrame output_frame = 5;
   IntegratorType integrator = 6;
-}
-
-message TLELines {
-  string tle_line1 = 1;
-  string tle_line2 = 2;
-}
-
-message TLEStreamResponse {
-  int32 satellite_id = 1;
-  repeated PositionPoint positions = 3;
-  string frame = 4;
-  string error = 5;
-}
-
-message TLEListRequest {
-  TLEStreamConfig config = 1;
-  repeated TLELines tles = 2;
+  repeated TLELines tles = 7;
 }

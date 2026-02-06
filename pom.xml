@@ -204,13 +204,31 @@
               <goal>report</goal>
             </goals>
             <configuration>
-              <excludes>
-                <exclude>tr/com/kadiraydemir/orekit/model/**/*</exclude>
-                <exclude>tr/com/kadiraydemir/orekit/mapper/**/*</exclude>
-                <exclude>**/grpc/*Proto*.class</exclude>
-                <exclude>**/grpc/*Grpc*.class</exclude>
-                <exclude>**/grpc/*OrBuilder*.class</exclude>
-              </excludes>
+              <!-- Only include business logic packages (exclude generated code) -->
+              <includes>
+                <!-- Configuration classes -->
+                <include>tr/com/kadiraydemir/orekit/config/*.class</include>
+                <include>tr/com/kadiraydemir/orekit/config/*$*.class</include>
+                
+                <!-- Exception classes -->
+                <include>tr/com/kadiraydemir/orekit/exception/*.class</include>
+                <include>tr/com/kadiraydemir/orekit/exception/*$*.class</include>
+                
+                <!-- Utility classes -->
+                <include>tr/com/kadiraydemir/orekit/utils/*.class</include>
+                <include>tr/com/kadiraydemir/orekit/utils/*$*.class</include>
+                
+                <!-- Service implementations -->
+                <include>tr/com/kadiraydemir/orekit/service/**/*.class</include>
+                
+                <!-- gRPC service implementations (manual code only) -->
+                <include>tr/com/kadiraydemir/orekit/grpc/*GrpcService.class</include>
+                <include>tr/com/kadiraydemir/orekit/grpc/*HealthCheck.class</include>
+                <include>tr/com/kadiraydemir/orekit/grpc/propagation/*.class</include>
+                <include>tr/com/kadiraydemir/orekit/grpc/eclipse/*.class</include>
+                <include>tr/com/kadiraydemir/orekit/grpc/visibility/*.class</include>
+                <include>tr/com/kadiraydemir/orekit/grpc/transformation/*.class</include>
+              </includes>
             </configuration>
           </execution>
         </executions>

@@ -13,11 +13,9 @@ import tr.com.kadiraydemir.orekit.grpc.*;
 import tr.com.kadiraydemir.orekit.mapper.PropagationMapper;
 import tr.com.kadiraydemir.orekit.model.TleResult;
 import tr.com.kadiraydemir.orekit.service.propagation.PropagationService;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.SubmissionPublisher;
 
 @GrpcService
 @RunOnVirtualThread
@@ -59,66 +57,48 @@ public class PropagationGrpcService extends OrbitalServiceGrpc.OrbitalServiceImp
     }
 
     @Override
-    public void propagateTLEList(TLEListRequest request, StreamObserver<TLEStreamResponse> responseObserver) {
-        // Validation
-        if (!request.hasConfig()) {
-            responseObserver.onError(new IllegalArgumentException("Config is required"));
-            return;
-        }
-
-        TLEStreamConfig config = request.getConfig();
+    public void propagateTLEList(TLEListRequest request, StreamObserver<TLEListResponse> responseObserver) {
         List<TLELines> allTles = request.getTlesList();
+        log.info("Starting bulk TLE propagation for {} satellites", allTles.size());
 
-        // Chunk processing logic
-        // We use Multi to process chunks in parallel on the executor, and stream
-        // results immediately
         Multi.createFrom().iterable(allTles)
                 .group().intoLists().of(200) // Batch size 200
-                .onItem().transformToUni(chunk -> Uni.createFrom().item(() -> processBatch(chunk, config))
+                .onItem().transformToUni(chunk -> Uni.createFrom().item(() -> processBatch(chunk, request))
                         .runSubscriptionOn(propagationExecutor))
-                .merge(32) // Parallelism level (up to 32 chunks in flight)
-                .onItem().transformToMulti(batchResults -> Multi.createFrom().iterable(batchResults)) // Flatten batch
-                                                                                                      // results into
-                                                                                                      // stream
-                .concatenate() // Flatten the stream (Multi<TLEStreamResponse>)
+                .merge(64) // Increased parallelism for virtual threads
+                .onItem().transformToMulti(batch -> Multi.createFrom().iterable(batch))
+                .merge() // Flatten stream as items finish
                 .subscribe().with(
-                        responseObserver::onNext, // Send each TLEStreamResponse immediately
+                        responseObserver::onNext,
                         responseObserver::onError,
                         responseObserver::onCompleted);
     }
 
     // Helper method to process a batch of TLEs
-    private List<TLEStreamResponse> processBatch(List<TLELines> chunk, TLEStreamConfig config) {
-        List<TLEStreamResponse> batchResponses = new ArrayList<>(chunk.size());
+    private List<TLEListResponse> processBatch(List<TLELines> chunk, TLEListRequest request) {
+        List<TLEListResponse> batchResponses = new ArrayList<>(chunk.size());
 
         for (TLELines tleLines : chunk) {
             try {
-                // Manually map to internal DTO (since we don't have a direct mapper for
-                // TLELines -> Request)
-                // Reusing the same request builder logic
-
                 tr.com.kadiraydemir.orekit.grpc.TLEPropagateRequest grpcRequest = tr.com.kadiraydemir.orekit.grpc.TLEPropagateRequest
                         .newBuilder()
-                        .setModel(config.getModel())
+                        .setModel(request.getModel())
                         .setTleLine1(tleLines.getTleLine1())
                         .setTleLine2(tleLines.getTleLine2())
-                        .setStartDate(config.getStartDate())
-                        .setEndDate(config.getEndDate())
-                        .setPositionCount(config.getPositionCount())
-                        .setOutputFrame(config.getOutputFrame())
-                        .setIntegrator(config.getIntegrator())
+                        .setStartDate(request.getStartDate())
+                        .setEndDate(request.getEndDate())
+                        .setPositionCount(request.getPositionCount())
+                        .setOutputFrame(request.getOutputFrame())
+                        .setIntegrator(request.getIntegrator())
                         .build();
 
-                // Call propagation service
-                // propagationService.propagateTLE takes the DTO.
-                // propagationMapper.toDTO converts Grpc Request to DTO.
+                // Call propagation service - each call returns exactly 1 TleResult for TLE
+                // model
+                TleResult result = propagationService.propagateTLE(propagationMapper.toDTO(grpcRequest))
+                        .toUni().await().indefinitely();
 
-                List<TleResult> results = propagationService.propagateTLE(propagationMapper.toDTO(grpcRequest))
-                        .collect().asList().await().indefinitely();
-
-                if (results != null && !results.isEmpty()) {
-                    TleResult result = results.get(0);
-                    batchResponses.add(TLEStreamResponse.newBuilder()
+                if (result != null) {
+                    batchResponses.add(TLEListResponse.newBuilder()
                             .setSatelliteId(extractSatelliteId(tleLines.getTleLine1()))
                             .addAllPositions(result.positions().stream()
                                     .map(p -> PositionPoint.newBuilder()
@@ -133,7 +113,7 @@ public class PropagationGrpcService extends OrbitalServiceGrpc.OrbitalServiceImp
                 }
             } catch (Exception e) {
                 log.error("Error processing TLE in batch: {}", tleLines.getTleLine1(), e);
-                batchResponses.add(TLEStreamResponse.newBuilder()
+                batchResponses.add(TLEListResponse.newBuilder()
                         .setSatelliteId(extractSatelliteId(tleLines.getTleLine1()))
                         .setError(e.getMessage())
                         .build());
