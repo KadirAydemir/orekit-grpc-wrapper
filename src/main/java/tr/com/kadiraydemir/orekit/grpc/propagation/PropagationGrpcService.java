@@ -7,7 +7,8 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tr.com.kadiraydemir.orekit.grpc.*;
 import tr.com.kadiraydemir.orekit.mapper.PropagationMapper;
 import tr.com.kadiraydemir.orekit.model.TleResult;
@@ -18,10 +19,11 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.SubmissionPublisher;
 
-@Slf4j
 @GrpcService
 @RunOnVirtualThread
 public class PropagationGrpcService extends OrbitalServiceGrpc.OrbitalServiceImplBase {
+
+    private static final Logger log = LoggerFactory.getLogger(PropagationGrpcService.class);
 
     @Inject
     PropagationService propagationService;

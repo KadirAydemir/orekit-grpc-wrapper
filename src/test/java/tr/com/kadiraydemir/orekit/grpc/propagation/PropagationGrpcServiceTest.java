@@ -2,7 +2,6 @@ package tr.com.kadiraydemir.orekit.grpc.propagation;
 
 import io.quarkus.grpc.GrpcClient;
 import io.quarkus.test.junit.QuarkusTest;
-import io.smallrye.mutiny.Multi;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import tr.com.kadiraydemir.orekit.grpc.*;
