@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import tr.com.kadiraydemir.orekit.grpc.*;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.List;
 
@@ -54,5 +55,54 @@ public class PropagationBenchmarkTest {
         System.out.println("BENCHMARK_RESULT: Total points: " + totalPoints.get());
 
         Assertions.assertEquals(positionCount, totalPoints.get(), "Total points should match requested count");
+    }
+
+    @Test
+    public void testPropagateTLEListPerformance() {
+        int tleCount = 1000;
+        int positionCount = 10;
+
+        TLEStreamConfig config = TLEStreamConfig.newBuilder()
+                .setModel(PropagationModel.SGP4)
+                .setStartDate("2024-01-01T12:00:00Z")
+                .setEndDate("2024-01-01T13:00:00Z")
+                .setPositionCount(positionCount)
+                .setOutputFrame(ReferenceFrame.TEME)
+                .build();
+
+        List<TLELines> tles = new ArrayList<>(tleCount);
+        String baseLine1 = "1 25544U 98067A   24001.00000000  .00016717  00000-0  10270-3 0  999";
+        String baseLine2 = "2 25544  51.6444  20.0000 0005000  0.0000  50.0000 15.50000000";
+
+        for (int i = 0; i < tleCount; i++) {
+            String line1 = baseLine1 + String.format("%01d", i % 10);
+            String line2 = baseLine2 + String.format("%05d", i);
+            tles.add(TLELines.newBuilder()
+                    .setTleLine1(line1)
+                    .setTleLine2(line2)
+                    .build());
+        }
+
+        TLEListRequest request = TLEListRequest.newBuilder()
+                .setConfig(config)
+                .addAllTles(tles)
+                .build();
+
+        long startTime = System.currentTimeMillis();
+
+        List<TLEStreamResponse> responses = orbitalService.propagateTLEList(request)
+                .collect().asList()
+                .await().atMost(Duration.ofSeconds(120));
+
+        long endTime = System.currentTimeMillis();
+        long duration = endTime - startTime;
+
+        System.out.println("TLE_LIST_BENCHMARK: Total TLEs: " + tleCount);
+        System.out.println("TLE_LIST_BENCHMARK: Processed: " + responses.size());
+        System.out.println("TLE_LIST_BENCHMARK: Duration: " + duration + " ms");
+        System.out.println("TLE_LIST_BENCHMARK: Throughput: " + (tleCount * 1000.0 / duration) + " TLEs/sec");
+        System.out.println("TLE_LIST_BENCHMARK: Avg per TLE: " + (duration / (double) tleCount) + " ms");
+
+        Assertions.assertEquals(tleCount, responses.size(), "Should receive response for each TLE");
     }
 }
