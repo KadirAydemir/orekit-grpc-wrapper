@@ -160,4 +160,77 @@ public class EclipseServiceImplTest {
             assertTrue(interval.durationSeconds() >= 0);
         }
     }
+
+    @Test
+    @DisplayName("Should exclude events before start date")
+    public void calculateEclipses_eventsBeforeStart_areExcluded() {
+        // Given - ISS TLE with epoch 2024-01-01
+        String line1 = "1 25544U 98067A   24001.00000000  .00016717  00000-0  10270-3 0  9991";
+        String line2 = "2 25544  51.6444  20.0000 0005000  0.0000  50.0000 15.50000000 10005";
+
+        // Request a window starting LATER (Jan 2)
+        // ISS orbits every ~90 mins, so there are many eclipses between Jan 1 and Jan 2.
+        // We must NOT see them.
+        String startIso = "2024-01-02T00:00:00Z";
+        String endIso = "2024-01-02T03:00:00Z"; // 3 hours window
+
+        EclipseRequest request = new EclipseRequest(
+            line1,
+            line2,
+            startIso,
+            endIso
+        );
+
+        // When
+        EclipseResult result = eclipseService.calculateEclipses(request);
+
+        // Then
+        assertNotNull(result);
+        List<EclipseIntervalResult> intervals = result.intervals();
+
+        // Verify all intervals start AFTER or ON the requested start date
+        // And end BEFORE or ON the requested end date (or slight tolerance)
+        // But most importantly, no intervals from Jan 1.
+
+        org.orekit.time.TimeScale utc = org.orekit.time.TimeScalesFactory.getUTC();
+        org.orekit.time.AbsoluteDate reqStart = new org.orekit.time.AbsoluteDate(startIso, utc);
+        org.orekit.time.AbsoluteDate reqEnd = new org.orekit.time.AbsoluteDate(endIso, utc);
+
+        for (EclipseIntervalResult interval : intervals) {
+            org.orekit.time.AbsoluteDate intStart = new org.orekit.time.AbsoluteDate(interval.startIso(), utc);
+            org.orekit.time.AbsoluteDate intEnd = new org.orekit.time.AbsoluteDate(interval.endIso(), utc);
+
+            // Allow small tolerance for floating point comparisons or just strictly check date
+            assertTrue(intStart.durationFrom(reqStart) >= -1.0, "Interval start " + intStart + " is before request start " + reqStart);
+            assertTrue(intEnd.durationFrom(reqEnd) <= 1.0, "Interval end " + intEnd + " is after request end " + reqEnd);
+        }
+    }
+
+    @Test
+    @DisplayName("Should calculate eclipses for multiple satellites")
+    public void calculateEclipsesBulk_validInput_returnsResults() {
+        // Given
+        String line1 = "1 25544U 98067A   24001.00000000  .00016717  00000-0  10270-3 0  9991";
+        String line2 = "2 25544  51.6444  20.0000 0005000  0.0000  50.0000 15.50000000 10005";
+        EclipseService.TLEPair pair1 = new EclipseService.TLEPair(line1, line2);
+
+        String line1b = "1 20580U 90037B   24001.00000000  .00001285  00000-0  65430-4 0  9992";
+        String line2b = "2 20580  28.4699 139.8847 0002819 100.0000 260.0000 15.09691001 22222";
+        EclipseService.TLEPair pair2 = new EclipseService.TLEPair(line1b, line2b);
+
+        List<EclipseService.TLEPair> pairs = List.of(pair1, pair2);
+
+        // When
+        List<EclipseResult> results = eclipseService.calculateEclipsesBulk(
+            pairs,
+            "2024-01-01T00:00:00Z",
+            "2024-01-02T00:00:00Z"
+        );
+
+        // Then
+        assertNotNull(results);
+        assertEquals(2, results.size());
+        assertEquals(25544, results.get(0).noradId());
+        assertEquals(20580, results.get(1).noradId());
+    }
 }

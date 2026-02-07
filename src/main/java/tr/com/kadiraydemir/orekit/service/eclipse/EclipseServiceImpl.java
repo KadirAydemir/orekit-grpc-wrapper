@@ -56,13 +56,13 @@ public class EclipseServiceImpl implements EclipseService {
                 .withThreshold(1.0e-3)
                 .withHandler(new ContinueOnEvent());
 
-        // 5. Monitor Events
-        EventsLogger logger = new EventsLogger();
-        propagator.addEventDetector(logger.monitorDetector(detector));
-
         // 6. Propagate
         // Propagate to start first to get initial state
         SpacecraftState initialState = propagator.propagate(startDate);
+
+        // 5. Monitor Events
+        EventsLogger logger = new EventsLogger();
+        propagator.addEventDetector(logger.monitorDetector(detector));
 
         // Check if initially in eclipse
         // g > 0: sun is visible (not eclipsed)

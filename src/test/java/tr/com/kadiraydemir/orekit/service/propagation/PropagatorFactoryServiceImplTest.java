@@ -28,18 +28,23 @@ public class PropagatorFactoryServiceImplTest {
 
         Propagator p1 = factoryService.createPropagator(tle, propagationTestMapper.map(PropagationModel.SGP4), null, FramesFactory.getTEME());
         Assertions.assertNotNull(p1);
+        Assertions.assertTrue(p1 instanceof org.orekit.propagation.analytical.tle.SGP4);
 
         Propagator p2 = factoryService.createPropagator(tle, propagationTestMapper.map(PropagationModel.SDP4), null, FramesFactory.getTEME());
         Assertions.assertNotNull(p2);
+        Assertions.assertTrue(p2 instanceof org.orekit.propagation.analytical.tle.DeepSDP4);
 
         Propagator p3 = factoryService.createPropagator(tle, propagationTestMapper.map(PropagationModel.NUMERICAL), propagationTestMapper.map(IntegratorType.DORMAND_PRINCE_853),
                 FramesFactory.getTEME());
         Assertions.assertNotNull(p3);
+        Assertions.assertTrue(p3 instanceof org.orekit.propagation.numerical.NumericalPropagator);
 
         Propagator p4 = factoryService.createPropagator(tle, propagationTestMapper.map(PropagationModel.AUTO), null, FramesFactory.getTEME());
         Assertions.assertNotNull(p4);
+        Assertions.assertTrue(p4 instanceof org.orekit.propagation.analytical.tle.TLEPropagator);
 
         Propagator p5 = factoryService.createPropagator(tle, null, null, FramesFactory.getTEME());
         Assertions.assertNotNull(p5);
+        Assertions.assertTrue(p5 instanceof org.orekit.propagation.analytical.tle.TLEPropagator);
     }
 }
