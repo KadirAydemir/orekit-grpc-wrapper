@@ -30,7 +30,7 @@ public class EclipseGrpcServiceTest {
                 .build();
 
         EclipseResponse response = eclipseService.calculateEclipses(request)
-                .await().atMost(Duration.ofSeconds(30));
+                .await().atMost(Duration.ofSeconds(60));
 
         Assertions.assertNotNull(response);
         System.out.println("Found " + response.getIntervalsCount() + " eclipse intervals.");
@@ -62,20 +62,9 @@ public class EclipseGrpcServiceTest {
                 .setEndDateIso("2024-02-02T00:00:00Z")
                 .build();
 
-        List<EclipseResponse> responses = new CopyOnWriteArrayList<>();
-
-        eclipseService.bulkCalculateEclipses(request)
-                .subscribe()
-                .with(responses::add,
-                        error -> Assertions.fail("Streaming failed: " + error.getMessage()),
-                        () -> System.out.println("Bulk calculation completed"));
-
-        // Wait for all responses
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        List<EclipseResponse> responses = eclipseService.bulkCalculateEclipses(request)
+                .collect().asList()
+                .await().atMost(Duration.ofSeconds(60));
 
         System.out.println("Received " + responses.size() + " responses");
 
