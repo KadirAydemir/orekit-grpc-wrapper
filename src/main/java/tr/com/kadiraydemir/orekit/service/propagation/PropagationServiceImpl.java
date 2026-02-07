@@ -28,6 +28,7 @@ import tr.com.kadiraydemir.orekit.service.frame.FrameService;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import io.smallrye.mutiny.Multi;
 
 /**
@@ -41,6 +42,10 @@ public class PropagationServiceImpl implements PropagationService {
 
     @Inject
     PropagatorFactoryService propagatorFactoryService;
+
+    @Inject
+    @Named("propagationExecutor")
+    ExecutorService propagationExecutor;
 
     @Override
     public OrbitResult propagate(PropagateRequest request) {
@@ -111,6 +116,7 @@ public class PropagationServiceImpl implements PropagationService {
             TimeScale utc = TimeScalesFactory.getUTC();
 
             return Multi.createFrom().item(request)
+                    .emitOn(propagationExecutor)
                     .map(req -> {
                         List<TleResult.PositionPointResult> positions = new ArrayList<>(positionCount);
                         for (int i = 0; i < positionCount; i++) {
