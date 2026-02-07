@@ -48,4 +48,18 @@ public class IntegratorServiceImplTest {
         Assertions.assertTrue(i5 instanceof org.hipparchus.ode.nonstiff.AdamsMoultonIntegrator);
         Assertions.assertTrue(i6 instanceof GraggBulirschStoerIntegrator);
     }
+
+    @Test
+    public void testCreateIntegrator_NullType_DefaultsToDormandPrince853() {
+        // Use a non-singular orbit
+        Orbit orbit = new KeplerianOrbit(7000000.0, 0.001, Math.toRadians(45.0), 0.0, 0.0, 0.0, PositionAngleType.MEAN,
+                FramesFactory.getEME2000(), AbsoluteDate.J2000_EPOCH, Constants.WGS84_EARTH_MU);
+
+        // Pass null as IntegratorType
+        AbstractIntegrator integrator = integratorService.createIntegrator(null, orbit);
+
+        // Should default to DormandPrince853Integrator
+        Assertions.assertNotNull(integrator);
+        Assertions.assertTrue(integrator instanceof DormandPrince853Integrator);
+    }
 }
