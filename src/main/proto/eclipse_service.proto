@@ -9,6 +9,9 @@ option java_outer_classname = "EclipseServiceProto";
 service EclipseService {
   // Calculate eclipse intervals for a satellite
   rpc CalculateEclipses (EclipseRequest) returns (EclipseResponse) {}
+
+  // Calculate eclipse intervals for multiple satellites (streaming response)
+  rpc BulkCalculateEclipses (BulkEclipseRequest) returns (stream EclipseResponse) {}
 }
 
 message EclipseRequest {
@@ -18,8 +21,21 @@ message EclipseRequest {
   string end_date_iso = 4;
 }
 
+message BulkEclipseRequest {
+  // Multiple TLEs to process
+  repeated TLEPair tles = 1;
+  // Common date range for all satellites
+  string start_date_iso = 2;
+  string end_date_iso = 3;
+}
+
+message TLEPair {
+  string line1 = 1;
+  string line2 = 2;
+}
+
 message EclipseResponse {
-    string satellite_name = 1;
+    int32 norad_id = 1;
     repeated EclipseInterval intervals = 2;
 }
 

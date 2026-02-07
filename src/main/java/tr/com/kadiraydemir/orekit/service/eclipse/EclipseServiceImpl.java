@@ -99,7 +99,7 @@ public class EclipseServiceImpl implements EclipseService {
         }
 
         return new EclipseResult(
-                tle.getElementNumber() + "",
+                tle.getSatelliteNumber(),
                 intervals);
     }
 
@@ -108,5 +108,32 @@ public class EclipseServiceImpl implements EclipseService {
                 start.toString(),
                 end.toString(),
                 end.durationFrom(start));
+    }
+
+    @Override
+    public List<EclipseResult> calculateEclipsesBulk(
+            List<TLEPair> tlePairs,
+            String startDateIso,
+            String endDateIso) {
+        List<EclipseResult> results = new ArrayList<>();
+
+        for (TLEPair tlePair : tlePairs) {
+            try {
+                EclipseRequest request = new EclipseRequest(
+                        tlePair.line1(),
+                        tlePair.line2(),
+                        startDateIso,
+                        endDateIso
+                );
+                EclipseResult result = calculateEclipses(request);
+                results.add(result);
+            } catch (Exception e) {
+                // Log error and continue with next satellite
+                // Skip invalid TLEs
+                System.err.println("Error processing TLE for satellite: " + e.getMessage());
+            }
+        }
+
+        return results;
     }
 }

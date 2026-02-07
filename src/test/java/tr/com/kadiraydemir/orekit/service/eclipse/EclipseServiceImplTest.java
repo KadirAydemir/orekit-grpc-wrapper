@@ -38,7 +38,7 @@ public class EclipseServiceImplTest {
 
         // Then
         assertNotNull(result);
-        assertNotNull(result.satelliteName());
+        assertTrue(result.noradId() > 0);
         assertNotNull(result.intervals());
         // ISS typically has eclipses, so we expect some intervals
         // But this depends on the specific time period
@@ -128,7 +128,7 @@ public class EclipseServiceImplTest {
 
         // Then
         assertNotNull(result);
-        assertNotNull(result.satelliteName());
+        assertTrue(result.noradId() > 0);
         assertNotNull(result.intervals());
     }
 
