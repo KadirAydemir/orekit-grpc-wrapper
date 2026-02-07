@@ -11,7 +11,7 @@ service EclipseService {
   rpc CalculateEclipses (EclipseRequest) returns (EclipseResponse) {}
 
   // Calculate eclipse intervals for multiple satellites (streaming response)
-  rpc BulkCalculateEclipses (BulkEclipseRequest) returns (stream EclipseResponse) {}
+  rpc BatchCalculateEclipses (BatchEclipseRequest) returns (stream EclipseResponse) {}
 }
 
 message EclipseRequest {
@@ -21,7 +21,7 @@ message EclipseRequest {
   string end_date_iso = 4;
 }
 
-message BulkEclipseRequest {
+message BatchEclipseRequest {
   // Multiple TLEs to process
   repeated TLEPair tles = 1;
   // Common date range for all satellites
@@ -37,6 +37,8 @@ message TLEPair {
 message EclipseResponse {
     int32 norad_id = 1;
     repeated EclipseInterval intervals = 2;
+    // Error message for partial failures - empty if successful
+    string error = 3;
 }
 
 message EclipseInterval {

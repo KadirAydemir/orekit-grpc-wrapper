@@ -35,8 +35,8 @@ enum ReferenceFrame {
 service OrbitalService {
   rpc Propagate (PropagateRequest) returns (PropagateResponse) {}
   rpc PropagateTLE (TLEPropagateRequest) returns (stream TLEPropagateResponse) {}
-  // Bulk Input -> Stream Output
-  rpc PropagateTLEList (TLEListRequest) returns (stream TLEListResponse) {}
+  // Batch Input -> Stream Output
+  rpc BatchPropagateTLE (BatchTLEPropagateRequest) returns (stream BatchTLEPropagateResponse) {}
 }
 
 message PropagateRequest {
@@ -91,14 +91,14 @@ message TLELines {
   string tle_line2 = 2;
 }
 
-message TLEListResponse {
+message BatchTLEPropagateResponse {
   int32 satellite_id = 1;
   repeated PositionPoint positions = 2;
   string frame = 3;
   string error = 4;
 }
 
-message TLEListRequest {
+message BatchTLEPropagateRequest {
   PropagationModel model = 1;
   string start_date = 2; // ISO-8601
   string end_date = 3; // ISO-8601

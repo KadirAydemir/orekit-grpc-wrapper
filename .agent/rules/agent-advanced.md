@@ -40,6 +40,47 @@ message PropagateRequest {
 - Never expose proto-generated classes in service layer
 - Use `@GrpcService` and `@RunOnVirtualThread` annotations
 
+### API Naming Conventions
+
+#### Standardized Naming for Batch Operations
+All batch/streaming endpoints MUST use consistent naming:
+- Use `Batch` prefix for batch operations (e.g., `BatchCalculateEclipses`, `BatchGetAccessIntervals`)
+- Use `List` suffix for request/response message types only (e.g., `TLEListRequest`, `TLEListResponse`)
+- Never mix conventions within the same service
+
+#### Partial Failure Handling
+All bulk response messages MUST include an `error` field for partial failure handling:
+```protobuf
+message BatchResponse {
+    // ... response fields ...
+    // Error message for partial failures - empty if successful
+    string error = 10;
+}
+```
+
+This allows the service to:
+- Return successful results for valid items
+- Include error information for failed items without terminating the entire stream
+- Provide better client experience with detailed failure information
+
+#### Example Service Definition
+```protobuf
+service EclipseService {
+    // Unary operation
+    rpc CalculateEclipses (EclipseRequest) returns (EclipseResponse) {}
+    
+    // Batch streaming operation with consistent naming
+    rpc BatchCalculateEclipses (BatchEclipseRequest) returns (stream EclipseResponse) {}
+}
+
+message EclipseResponse {
+    int32 norad_id = 1;
+    repeated EclipseInterval intervals = 2;
+    // Error field for partial failures
+    string error = 3;
+}
+```
+
 ## Lombok Usage Guidelines
 
 ### When to Use
@@ -261,6 +302,120 @@ set -e
 
 # Check for vulnerabilities
 ./mvnw org.owasp:dependency-check-maven:check
+```
+
+### Batch Processing Pattern for Batch Operations
+
+When implementing bulk/streaming gRPC operations, use the following pattern for optimal performance:
+
+```java
+@Override
+public void batchOperation(BatchRequest request, StreamObserver<Response> responseObserver) {
+    List<Item> allItems = request.getItemsList();
+    log.info("Starting bulk operation for {} items", allItems.size());
+
+    Multi.createFrom().iterable(allItems)
+            .group().intoLists().of(200) // Batch size 200-500
+            .onItem().transformToUni(chunk -> Uni.createFrom().item(() -> processBatch(chunk, request))
+                    .runSubscriptionOn(executor))
+            .merge(64) // Parallelism level
+            .onItem().transformToMulti(batch -> Multi.createFrom().iterable(batch))
+            .merge() // Flatten stream as items finish
+            .subscribe().with(
+                    responseObserver::onNext,
+                    responseObserver::onError,
+                    responseObserver::onCompleted
+            );
+}
+
+// Helper method to process a batch
+private List<Response> processChunk(List<Item> chunk, BatchRequest request) {
+    List<Response> batchResponses = new ArrayList<>(chunk.size());
+
+    for (Item item : chunk) {
+        try {
+            // Process individual item
+            Result result = service.process(item);
+            batchResponses.add(mapper.map(result));
+        } catch (Exception e) {
+            log.error("Error processing item: {}", item, e);
+            // Return partial failure with error field set
+            batchResponses.add(Response.newBuilder()
+                    .setId(item.getId())
+                    .setError(e.getMessage())
+                    .build());
+        }
+    }
+    return batchResponses;
+}
+```
+
+Key principles:
+- **Chunking**: Group items into batches (200-500 items) to reduce overhead
+- **Parallelism**: Use merge(64) for controlled concurrency with virtual threads
+- **Partial Failures**: Catch exceptions at item level and return error in response
+- **Streaming**: Release results incrementally rather than blocking until complete
+- **Pre-sizing**: Pre-size result lists with `new ArrayList<>(chunk.size())`
+
+### Mapper Usage Rules
+
+#### Use Mappers for All Conversions
+
+All mapping between gRPC and domain objects MUST use MapStruct mappers:
+
+```java
+@Mapper(componentModel = "jakarta", ...)
+public interface ServiceMapper {
+    // Request -> DTO
+    DomainRequest toDTO(GrpcRequest source);
+    
+    // DTO -> Response (REQUIRED - don't manually map in service)
+    GrpcResponse map(DomainResult source);
+    
+    // Nested object mapping
+    NestedGrpcObject map(NestedDomainObject source);
+    
+    // List mapping
+    List<NestedGrpcObject> mapList(List<NestedDomainObject> source);
+}
+```
+
+#### Anti-Pattern: Manual Mapping in Service
+```java
+// DON'T DO THIS
+private GrpcResponse toGrpcResponse(DomainResult result) {
+    return GrpcResponse.newBuilder()
+            .setField1(result.field1())
+            .setField2(result.field2())
+            .build();
+}
+```
+
+#### Correct Pattern: Use Mapper
+```java
+// CORRECT
+@Autowired
+ServiceMapper mapper;
+
+public void operation(Request request, StreamObserver<Response> observer) {
+    Uni.createFrom().item(() -> service.process(mapper.toDTO(request)))
+            .map(mapper::map) // Use mapper for response
+            .subscribe().with(...);
+}
+```
+
+### TLE Parsing Utilities
+
+Use `TleUtils` for all TLE-related parsing operations:
+
+```java
+// Extract satellite ID
+int satId = TleUtils.extractSatelliteId(line1);
+
+// Validate TLE format
+boolean valid = TleUtils.isValidTle(line1, line2);
+
+// Never parse TLE manually in service classes
 ```
 
 ## Performance Optimization

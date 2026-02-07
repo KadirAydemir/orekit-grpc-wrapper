@@ -55,14 +55,14 @@ public class EclipseGrpcServiceTest {
         String hubbleLine1 = "1 20580U 90037B   24001.00000000  .00001285  00000-0  65430-4 0  9992";
         String hubbleLine2 = "2 20580  28.4699 139.8847 0002819 100.0000 260.0000 15.09691001 22222";
 
-        BulkEclipseRequest request = BulkEclipseRequest.newBuilder()
+        BatchEclipseRequest request = BatchEclipseRequest.newBuilder()
                 .addTles(TLEPair.newBuilder().setLine1(issLine1).setLine2(issLine2).build())
                 .addTles(TLEPair.newBuilder().setLine1(hubbleLine1).setLine2(hubbleLine2).build())
                 .setStartDateIso("2024-02-01T00:00:00Z")
                 .setEndDateIso("2024-02-02T00:00:00Z")
                 .build();
 
-        List<EclipseResponse> responses = eclipseService.bulkCalculateEclipses(request)
+        List<EclipseResponse> responses = eclipseService.batchCalculateEclipses(request)
                 .collect().asList()
                 .await().atMost(Duration.ofSeconds(60));
 

@@ -13,6 +13,7 @@ import tr.com.kadiraydemir.orekit.grpc.*;
 import tr.com.kadiraydemir.orekit.mapper.PropagationMapper;
 import tr.com.kadiraydemir.orekit.model.TleResult;
 import tr.com.kadiraydemir.orekit.service.propagation.PropagationService;
+import tr.com.kadiraydemir.orekit.utils.TleUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -57,7 +58,7 @@ public class PropagationGrpcService extends OrbitalServiceGrpc.OrbitalServiceImp
     }
 
     @Override
-    public void propagateTLEList(TLEListRequest request, StreamObserver<TLEListResponse> responseObserver) {
+    public void batchPropagateTLE(BatchTLEPropagateRequest request, StreamObserver<BatchTLEPropagateResponse> responseObserver) {
         List<TLELines> allTles = request.getTlesList();
         log.info("Starting bulk TLE propagation for {} satellites", allTles.size());
 
@@ -75,8 +76,8 @@ public class PropagationGrpcService extends OrbitalServiceGrpc.OrbitalServiceImp
     }
 
     // Helper method to process a batch of TLEs
-    private List<TLEListResponse> processBatch(List<TLELines> chunk, TLEListRequest request) {
-        List<TLEListResponse> batchResponses = new ArrayList<>(chunk.size());
+    private List<BatchTLEPropagateResponse> processBatch(List<TLELines> chunk, BatchTLEPropagateRequest request) {
+        List<BatchTLEPropagateResponse> batchResponses = new ArrayList<>(chunk.size());
 
         for (TLELines tleLines : chunk) {
             try {
@@ -98,8 +99,8 @@ public class PropagationGrpcService extends OrbitalServiceGrpc.OrbitalServiceImp
                         .toUni().await().indefinitely();
 
                 if (result != null) {
-                    batchResponses.add(TLEListResponse.newBuilder()
-                            .setSatelliteId(extractSatelliteId(tleLines.getTleLine1()))
+                    batchResponses.add(BatchTLEPropagateResponse.newBuilder()
+                            .setSatelliteId(TleUtils.extractSatelliteId(tleLines.getTleLine1()))
                             .addAllPositions(result.positions().stream()
                                     .map(p -> PositionPoint.newBuilder()
                                             .setX(p.x())
@@ -113,20 +114,12 @@ public class PropagationGrpcService extends OrbitalServiceGrpc.OrbitalServiceImp
                 }
             } catch (Exception e) {
                 log.error("Error processing TLE in batch: {}", tleLines.getTleLine1(), e);
-                batchResponses.add(TLEListResponse.newBuilder()
-                        .setSatelliteId(extractSatelliteId(tleLines.getTleLine1()))
+                batchResponses.add(BatchTLEPropagateResponse.newBuilder()
+                        .setSatelliteId(TleUtils.extractSatelliteId(tleLines.getTleLine1()))
                         .setError(e.getMessage())
                         .build());
             }
         }
         return batchResponses;
-    }
-
-    private int extractSatelliteId(String line1) {
-        try {
-            return Integer.parseInt(line1.substring(2, 7).trim());
-        } catch (Exception e) {
-            return 0;
-        }
     }
 }

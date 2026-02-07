@@ -11,6 +11,9 @@ option java_outer_classname = "CoordinateTransformServiceProto";
 service CoordinateTransformService {
     // Transform coordinates from one frame to another
     rpc Transform (TransformRequest) returns (TransformResponse) {}
+
+    // Transform multiple coordinates (streaming response)
+    rpc BatchTransform (BatchTransformRequest) returns (stream TransformResponse) {}
 }
 
 message TransformRequest {
@@ -27,6 +30,25 @@ message TransformRequest {
     double vz = 9;
 }
 
+message BatchTransformRequest {
+    ReferenceFrame source_frame = 1;
+    ReferenceFrame target_frame = 2;
+    // Multiple state vectors to transform (all at the same epoch)
+    repeated StateVector state_vectors = 3;
+    string epoch_iso = 4;
+}
+
+message StateVector {
+    // Position in source frame
+    double x = 1;
+    double y = 2;
+    double z = 3;
+    // Velocity in source frame
+    double vx = 4;
+    double vy = 5;
+    double vz = 6;
+}
+
 message TransformResponse {
     ReferenceFrame source_frame = 1;
     ReferenceFrame target_frame = 2;
@@ -39,4 +61,6 @@ message TransformResponse {
     double vx = 7;
     double vy = 8;
     double vz = 9;
+    // Error message for partial failures - empty if successful
+    string error = 10;
 }

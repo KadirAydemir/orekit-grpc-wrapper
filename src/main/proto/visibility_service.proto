@@ -11,6 +11,9 @@ option java_outer_classname = "VisibilityServiceProto";
 service VisibilityService {
     // Calculate access intervals between a satellite and a ground station
     rpc GetAccessIntervals (AccessIntervalsRequest) returns (AccessIntervalsResponse) {}
+
+    // Calculate access intervals for multiple satellites (streaming response)
+    rpc BatchGetAccessIntervals (BatchAccessIntervalsRequest) returns (stream AccessIntervalsResponse) {}
 }
 
 message AccessIntervalsRequest {
@@ -29,10 +32,23 @@ message GroundStation {
     string name = 4;
 }
 
+message BatchAccessIntervalsRequest {
+    // Multiple TLEs to process
+    repeated TLELines tles = 1;
+    // Common ground station for all satellites
+    GroundStation ground_station = 2;
+    // Common date range for all satellites
+    string start_date_iso = 3;
+    string end_date_iso = 4;
+    double min_elevation_degrees = 5;
+}
+
 message AccessIntervalsResponse {
     string satellite_name = 1;
     string station_name = 2;
     repeated AccessInterval intervals = 3;
+    // Error message for partial failures - empty if successful
+    string error = 4;
 }
 
 message AccessInterval {

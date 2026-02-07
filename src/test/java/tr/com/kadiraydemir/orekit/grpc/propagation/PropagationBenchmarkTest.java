@@ -75,7 +75,7 @@ public class PropagationBenchmarkTest {
                                         .build());
                 }
 
-                TLEListRequest request = TLEListRequest.newBuilder()
+                BatchTLEPropagateRequest request = BatchTLEPropagateRequest.newBuilder()
                                 .setModel(PropagationModel.SGP4)
                                 .setStartDate("2024-01-01T12:00:00Z")
                                 .setEndDate("2024-01-01T13:00:00Z")
@@ -86,7 +86,7 @@ public class PropagationBenchmarkTest {
 
                 long startTime = System.currentTimeMillis();
 
-                List<TLEListResponse> responses = orbitalService.propagateTLEList(request)
+                List<BatchTLEPropagateResponse> responses = orbitalService.batchPropagateTLE(request)
                                 .collect().asList()
                                 .await().atMost(Duration.ofSeconds(120));
 
