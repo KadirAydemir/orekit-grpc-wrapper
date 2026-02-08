@@ -13,7 +13,7 @@ service CoordinateTransformService {
     rpc Transform (TransformRequest) returns (TransformResponse) {}
 
     // Transform multiple coordinates (streaming response)
-    rpc BatchTransform (BatchTransformRequest) returns (stream TransformResponse) {}
+    rpc BatchTransform (BatchTransformRequest) returns (stream BatchTransformResponse) {}
 }
 
 message TransformRequest {
@@ -63,4 +63,9 @@ message TransformResponse {
     double vz = 9;
     // Error message for partial failures - empty if successful
     string error = 10;
+}
+
+// Batch response containing multiple transform results
+message BatchTransformResponse {
+    repeated TransformResponse results = 1;
 }

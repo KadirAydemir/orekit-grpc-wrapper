@@ -11,7 +11,7 @@ service EclipseService {
   rpc CalculateEclipses (EclipseRequest) returns (EclipseResponse) {}
 
   // Calculate eclipse intervals for multiple satellites (streaming response)
-  rpc BatchCalculateEclipses (BatchEclipseRequest) returns (stream EclipseResponse) {}
+  rpc BatchCalculateEclipses (BatchEclipseRequest) returns (stream BatchEclipseResponse) {}
 }
 
 message EclipseRequest {
@@ -45,4 +45,9 @@ message EclipseInterval {
     string start_iso = 1;
     string end_iso = 2;
     double duration_seconds = 3;
+}
+
+// Batch response containing multiple eclipse results
+message BatchEclipseResponse {
+    repeated EclipseResponse results = 1;
 }

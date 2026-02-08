@@ -1,5 +1,8 @@
 package tr.com.kadiraydemir.orekit.grpc.transformation;
 
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+
 import io.grpc.stub.StreamObserver;
 import io.quarkus.grpc.GrpcService;
 import io.smallrye.mutiny.Multi;
@@ -13,10 +16,6 @@ import tr.com.kadiraydemir.orekit.grpc.*;
 import tr.com.kadiraydemir.orekit.mapper.TransformationMapper;
 import tr.com.kadiraydemir.orekit.model.TransformResult;
 import tr.com.kadiraydemir.orekit.service.transformation.TransformationService;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ExecutorService;
 
 @GrpcService
 @RunOnVirtualThread
@@ -51,60 +50,67 @@ public class TransformationGrpcService extends CoordinateTransformServiceGrpc.Co
     }
 
     @Override
-    public void batchTransform(BatchTransformRequest request, StreamObserver<TransformResponse> responseObserver) {
+    public void batchTransform(BatchTransformRequest request, StreamObserver<BatchTransformResponse> responseObserver) {
         List<StateVector> allStates = request.getStateVectorsList();
         log.info("Starting bulk transformation for {} state vectors", allStates.size());
 
+        // Dynamic batch sizing for coordinate transforms
+        // Transform results are very small (just 6 doubles + metadata), so we can use large batches
+        // Target: 1000 results per batch for optimal network efficiency
+        int batchSize = 1000;
+        
+        log.info("Dynamic batch size calculated: {} (Coordinate transforms are lightweight)", batchSize);
+
         Multi.createFrom().iterable(allStates)
-                .group().intoLists().of(500) // Larger batch size for transformations (lighter operation)
-                .onItem().transformToUni(chunk -> Uni.createFrom().item(() -> processBatch(chunk, request))
+                .onItem()
+                .transformToUni(stateVector -> Uni.createFrom().item(() -> processSingleStateVector(stateVector, request))
                         .runSubscriptionOn(propagationExecutor))
-                .merge(64) // Increased parallelism for virtual threads
-                .onItem().transformToMulti(batch -> Multi.createFrom().iterable(batch))
-                .merge() // Flatten stream as items finish
+                .merge(128) // Concurrency control
+                .group().intoLists().of(batchSize) // Use dynamic batch size
+                .onItem()
+                .transform(results -> BatchTransformResponse.newBuilder().addAllResults(results).build())
                 .subscribe().with(
                         responseObserver::onNext,
                         responseObserver::onError,
-                        responseObserver::onCompleted
-                );
+                        responseObserver::onCompleted);
     }
 
-    // Helper method to process a batch of state vectors
-    private List<TransformResponse> processBatch(List<StateVector> chunk, BatchTransformRequest request) {
-        List<TransformResponse> batchResponses = new ArrayList<>(chunk.size());
+    // Helper method to process a single state vector with error handling
+    private TransformResponse processSingleStateVector(StateVector stateVector, BatchTransformRequest request) {
+        try {
+            TransformRequest grpcRequest = TransformRequest.newBuilder()
+                    .setSourceFrame(request.getSourceFrame())
+                    .setTargetFrame(request.getTargetFrame())
+                    .setEpochIso(request.getEpochIso())
+                    .setX(stateVector.getX())
+                    .setY(stateVector.getY())
+                    .setZ(stateVector.getZ())
+                    .setVx(stateVector.getVx())
+                    .setVy(stateVector.getVy())
+                    .setVz(stateVector.getVz())
+                    .build();
 
-        for (StateVector stateVector : chunk) {
-            try {
-                TransformRequest grpcRequest = TransformRequest.newBuilder()
+            TransformResult result = transformationService.transform(transformationMapper.toDTO(grpcRequest));
+
+            if (result != null) {
+                return transformationMapper.map(result);
+            } else {
+                return TransformResponse.newBuilder()
                         .setSourceFrame(request.getSourceFrame())
                         .setTargetFrame(request.getTargetFrame())
                         .setEpochIso(request.getEpochIso())
-                        .setX(stateVector.getX())
-                        .setY(stateVector.getY())
-                        .setZ(stateVector.getZ())
-                        .setVx(stateVector.getVx())
-                        .setVy(stateVector.getVy())
-                        .setVz(stateVector.getVz())
+                        .setError("No result returned from transformation service")
                         .build();
-
-                // Call transformation service - each call returns exactly 1 TransformResult
-                TransformResult result = transformationService.transform(transformationMapper.toDTO(grpcRequest));
-
-                if (result != null) {
-                    batchResponses.add(transformationMapper.map(result));
-                }
-            } catch (Exception e) {
-                log.error("Error transforming state vector: ({}, {}, {}) - {}",
-                        stateVector.getX(), stateVector.getY(), stateVector.getZ(), e.getMessage());
-                // Return partial failure with error field set
-                batchResponses.add(TransformResponse.newBuilder()
-                        .setSourceFrame(request.getSourceFrame())
-                        .setTargetFrame(request.getTargetFrame())
-                        .setEpochIso(request.getEpochIso())
-                        .setError(e.getMessage())
-                        .build());
             }
+        } catch (Exception e) {
+            log.error("Error transforming state vector: ({}, {}, {}) - {}",
+                    stateVector.getX(), stateVector.getY(), stateVector.getZ(), e.getMessage());
+            return TransformResponse.newBuilder()
+                    .setSourceFrame(request.getSourceFrame())
+                    .setTargetFrame(request.getTargetFrame())
+                    .setEpochIso(request.getEpochIso())
+                    .setError(e.getMessage())
+                    .build();
         }
-        return batchResponses;
     }
 }

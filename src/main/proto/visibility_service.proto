@@ -13,7 +13,7 @@ service VisibilityService {
     rpc GetAccessIntervals (AccessIntervalsRequest) returns (AccessIntervalsResponse) {}
 
     // Calculate access intervals for multiple satellites (streaming response)
-    rpc BatchGetAccessIntervals (BatchAccessIntervalsRequest) returns (stream AccessIntervalsResponse) {}
+    rpc BatchGetAccessIntervals (BatchAccessIntervalsRequest) returns (stream BatchAccessIntervalsResponse) {}
 }
 
 message AccessIntervalsRequest {
@@ -55,4 +55,9 @@ message AccessInterval {
     string start_iso = 1;
     string end_iso = 2;
     double duration_seconds = 3;
+}
+
+// Batch response containing multiple access intervals results
+message BatchAccessIntervalsResponse {
+    repeated AccessIntervalsResponse results = 1;
 }

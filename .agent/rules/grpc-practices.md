@@ -197,3 +197,46 @@ throw Status.NOT_FOUND.withDescription("Satellite not found").asRuntimeException
 - Sanitize satellite names in error messages
 - Validate all IDs before database lookups
 - Rate limit expensive operations
+
+### Dynamic Batch Sizing and Response Listing
+
+To optimize network throughput and avoid gRPC message size limits (default 4MB), all batch operations MUST implement **Dynamic Batch Sizing** and return **Lists of Results** instead of streaming individual items.
+
+#### Protocol Definition
+Batch methods should return a wrapper message containing a repeated field of results, NOT a stream of individual results.
+
+**Correct:**
+```protobuf
+rpc BatchPropagate (BatchRequest) returns (stream BatchResponse) {}
+
+message BatchResponse {
+  repeated Result results = 1;
+}
+```
+
+**Incorrect:**
+```protobuf
+rpc BatchPropagate (BatchRequest) returns (stream Result) {} // Optimization Fail: High overhead
+```
+
+#### Implementation Logic
+Service implementations MUST calculate batch size dynamically based on the estimated payload size.
+
+```java
+// Estimate size per item (base + variable parts)
+long estimatedSizePerItem = BASE_SIZE + (request.getSubItemCount() * SUB_ITEM_SIZE);
+
+// Calculate batch size (Target: ~3MB to stay under 4MB limit)
+int batchSize = (int) Math.min(MAX_BATCH_SIZE, Math.max(MIN_BATCH_SIZE, 3_000_000 / estimatedSizePerItem));
+
+Multi.createFrom().iterable(items)
+    .group().intoLists().of(batchSize) // Use dynamic size
+    .onItem().transform(results -> BatchResponse.newBuilder().addAllResults(results).build())
+    .subscribe()...
+```
+
+**Recommended Constants:**
+- `MAX_BATCH_SIZE`: 1000 (Sweet spot for latency/throughput)
+- `MIN_BATCH_SIZE`: 10
+- `TARGET_PAYLOAD_SIZE`: 3MB
+

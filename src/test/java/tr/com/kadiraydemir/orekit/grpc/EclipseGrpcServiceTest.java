@@ -62,16 +62,23 @@ public class EclipseGrpcServiceTest {
                 .setEndDateIso("2024-02-02T00:00:00Z")
                 .build();
 
-        List<EclipseResponse> responses = eclipseService.batchCalculateEclipses(request)
+        // Collect batch responses
+        List<BatchEclipseResponse> batchResponses = eclipseService.batchCalculateEclipses(request)
                 .collect().asList()
                 .await().atMost(Duration.ofSeconds(60));
 
-        System.out.println("Received " + responses.size() + " responses");
+        // Flatten the batch responses to individual EclipseResponses
+        List<EclipseResponse> allResponses = new ArrayList<>();
+        for (BatchEclipseResponse batchResponse : batchResponses) {
+            allResponses.addAll(batchResponse.getResultsList());
+        }
+
+        System.out.println("Received " + batchResponses.size() + " batches with " + allResponses.size() + " total responses");
 
         // Should receive 2 responses (one for each satellite)
-        Assertions.assertEquals(2, responses.size(), "Should receive 2 responses for 2 satellites");
+        Assertions.assertEquals(2, allResponses.size(), "Should receive 2 responses for 2 satellites");
 
-        for (EclipseResponse response : responses) {
+        for (EclipseResponse response : allResponses) {
             Assertions.assertTrue(response.getNoradId() > 0, "NORAD ID should be positive");
             System.out.println("Satellite NORAD ID: " + response.getNoradId() + " has " + response.getIntervalsCount() + " eclipse intervals");
         }
