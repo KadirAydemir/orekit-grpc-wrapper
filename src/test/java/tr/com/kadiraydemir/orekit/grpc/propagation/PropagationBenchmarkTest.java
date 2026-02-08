@@ -63,8 +63,8 @@ public class PropagationBenchmarkTest {
                 int positionCount = 10;
 
                 List<TLELines> tles = new ArrayList<>(tleCount);
-                String baseLine1 = "1 25544U 98067A   24001.00000000  .00016717  00000-0  10270-3 0  999";
-                String baseLine2 = "2 25544  51.6444  20.0000 0005000  0.0000  50.0000 15.50000000";
+                String baseLine1 = "1 25544U 98067A   24001.00000000  .00016717  00000-0  10270-3 0  999 ";
+                String baseLine2 = "2 25544  51.6444  20.0000 0005000  0.0000  50.0000 15.50000000  ";
 
                 for (int i = 0; i < tleCount; i++) {
                         String line1 = baseLine1 + String.format("%01d", i % 10);
@@ -99,6 +99,7 @@ public class PropagationBenchmarkTest {
                 System.out.println("TLE_LIST_BENCHMARK: Throughput: " + (tleCount * 1000.0 / duration) + " TLEs/sec");
                 System.out.println("TLE_LIST_BENCHMARK: Avg per TLE: " + (duration / (double) tleCount) + " ms");
 
-                Assertions.assertEquals(tleCount, responses.size(), "Should receive response for each TLE");
+                int totalProcessed = responses.stream().mapToInt(batch -> batch.getResultsCount()).sum();
+                Assertions.assertEquals(tleCount, totalProcessed, "Should receive result for each TLE");
         }
 }

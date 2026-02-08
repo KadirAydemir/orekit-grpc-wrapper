@@ -1,7 +1,6 @@
 package tr.com.kadiraydemir.orekit.config;
 
 import io.quarkus.test.junit.QuarkusTest;
-import jakarta.inject.Named;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
