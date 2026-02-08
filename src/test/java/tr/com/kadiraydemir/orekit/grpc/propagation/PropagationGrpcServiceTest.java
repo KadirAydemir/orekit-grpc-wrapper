@@ -99,8 +99,9 @@ public class PropagationGrpcServiceTest {
 
                 int totalResults = 0;
                 for (BatchTLEPropagateResponse response : responses) {
-                        Assertions.assertTrue(response.getResultsCount() <= 100,
-                                        "Batch size should be <= 100 but was " + response.getResultsCount());
+                        // Dynamic batch size allows up to 1000 for small payloads (1 pos)
+                        Assertions.assertTrue(response.getResultsCount() <= 1000,
+                                        "Batch size should be <= 1000 but was " + response.getResultsCount());
                         totalResults += response.getResultsCount();
                 }
                 Assertions.assertEquals(250, totalResults);

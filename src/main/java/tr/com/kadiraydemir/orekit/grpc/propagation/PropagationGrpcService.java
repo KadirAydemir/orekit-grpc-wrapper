@@ -62,12 +62,22 @@ public class PropagationGrpcService extends OrbitalServiceGrpc.OrbitalServiceImp
                 List<TLELines> allTles = request.getTlesList();
                 log.info("Starting bulk TLE propagation for {} satellites", allTles.size());
 
+                // Estimate size per satellite: ~50 bytes base + ~64 bytes per position (3
+                // doubles + timestamp)
+                long estimatedSizePerSatellite = 50 + (request.getPositionCount() * 64L);
+                // Target batch size: 3MB (safe margin within 4MB limit)
+                int batchSize = (int) Math.min(1000, Math.max(10, 3_000_000 / estimatedSizePerSatellite));
+
+                log.info("Dynamic batch size calculated: {} (Position count: {})", batchSize,
+                                request.getPositionCount());
+
                 Multi.createFrom().iterable(allTles)
                                 .onItem()
                                 .transformToUni(tle -> Uni.createFrom().item(() -> processSingleTle(tle, request))
                                                 .runSubscriptionOn(propagationExecutor))
                                 .merge(128) // Concurrency control
-                                .group().intoLists().of(100) // Batch responses in groups of 100
+                                .group().intoLists().of(batchSize) // Use dynamic batch size
+                                // .group().intoLists().of(100) // Batch responses in groups of 100
                                 .onItem()
                                 .transform(results -> BatchTLEPropagateResponse.newBuilder().addAllResults(results)
                                                 .build())
