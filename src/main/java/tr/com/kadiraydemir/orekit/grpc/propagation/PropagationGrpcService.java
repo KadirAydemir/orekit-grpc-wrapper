@@ -9,6 +9,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Named;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.hipparchus.util.FastMath;
 import tr.com.kadiraydemir.orekit.grpc.*;
 import tr.com.kadiraydemir.orekit.mapper.PropagationMapper;
 import tr.com.kadiraydemir.orekit.model.TleResult;
@@ -66,7 +67,7 @@ public class PropagationGrpcService extends OrbitalServiceGrpc.OrbitalServiceImp
                 // doubles + timestamp)
                 long estimatedSizePerSatellite = 50 + (request.getPositionCount() * 64L);
                 // Target batch size: 3MB (safe margin within 4MB limit)
-                int batchSize = (int) Math.min(1000, Math.max(10, 3_000_000 / estimatedSizePerSatellite));
+                int batchSize = (int) FastMath.min(1000, FastMath.max(10, 3_000_000 / estimatedSizePerSatellite));
 
                 log.info("Dynamic batch size calculated: {} (Position count: {})", batchSize,
                                 request.getPositionCount());

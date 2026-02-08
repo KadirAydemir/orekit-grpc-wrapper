@@ -1,5 +1,6 @@
 package tr.com.kadiraydemir.orekit.utils;
 
+import org.hipparchus.util.FastMath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +42,7 @@ public final class TleUtils {
             String satelliteNumberStr = line1.substring(SATELLITE_NUMBER_START, SATELLITE_NUMBER_END).trim();
             return Integer.parseInt(satelliteNumberStr);
         } catch (NumberFormatException e) {
-            log.warn("Failed to parse satellite ID from TLE Line 1: {}", line1.substring(0, Math.min(line1.length(), 10)));
+            log.warn("Failed to parse satellite ID from TLE Line 1: {}", line1.substring(0, FastMath.min(line1.length(), 10)));
             return 0;
         } catch (IndexOutOfBoundsException e) {
             log.warn("TLE Line 1 is too short to extract satellite ID");

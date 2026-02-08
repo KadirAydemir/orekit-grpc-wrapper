@@ -158,6 +158,7 @@ ExecutorService propagationExecutor;
 - Explicit types in public APIs (no `var` in signatures)
 
 ## Numerical Safety
+- **Use `FastMath`**: Always prefer `org.hipparchus.util.FastMath` over `java.lang.Math` for performance.
 - Avoid non-deterministic APIs (unordered parallel streams)
 - Avoid direct double equality comparisons
 - Prefer tolerance-based comparisons

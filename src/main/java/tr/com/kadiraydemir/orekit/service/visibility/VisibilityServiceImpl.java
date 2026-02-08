@@ -6,6 +6,7 @@ import java.util.List;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
+import org.hipparchus.util.FastMath;
 import org.orekit.frames.TopocentricFrame;
 import org.orekit.propagation.analytical.tle.TLE;
 import org.orekit.propagation.analytical.tle.TLEPropagator;
@@ -45,7 +46,7 @@ public class VisibilityServiceImpl implements VisibilityService {
                 request.groundStation().name());
 
         // 4. Setup Detector
-        double minElevation = java.lang.Math.toRadians(request.minElevationDegrees());
+        double minElevation = FastMath.toRadians(request.minElevationDegrees());
         ElevationDetector detector = new ElevationDetector(stationFrame)
                 .withConstantElevation(minElevation)
                 .withMaxCheck(60.0) // Check every 60s max

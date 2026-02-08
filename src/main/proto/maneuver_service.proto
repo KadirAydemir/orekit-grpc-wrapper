@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package maneuver;
+
+option java_multiple_files = true;
+option java_package = "tr.com.kadiraydemir.orekit.grpc.maneuver";
+option java_outer_classname = "ManeuverServiceProto";
+
+// Reference frame for output coordinates
+enum ReferenceFrame {
+  TEME = 0;   // True Equator Mean Equinox (default, native SGP4/SDP4 frame)
+  GCRF = 1;   // Geocentric Celestial Reference Frame
+  EME2000 = 2; // Earth Mean Equator and Equinox of J2000
+  ITRF = 3;   // International Terrestrial Reference Frame (Earth-fixed)
+}
+
+service ManeuverService {
+  // High-fidelity orbit analysis with maneuver detection
+  rpc DetectManeuvers (ManeuverDetectionRequest) returns (ManeuverDetectionResponse) {}
+}
+
+message TLELines {
+  string tle_line1 = 1;
+  string tle_line2 = 2;
+}
+
+
+// Force model configuration for numerical propagation
+message ForceModelConfig {
+  int32 gravity_degree = 1;
+  int32 gravity_order = 2;
+  bool solar_radiation_pressure = 3;
+  bool atmospheric_drag = 4;
+}
+
+// Request for maneuver detection
+message ManeuverDetectionRequest {
+  TLELines initial_tle = 1;
+  repeated TLELines observed_tles = 2;
+  ForceModelConfig config = 3;
+  double maneuver_threshold_km = 4;
+  ReferenceFrame output_frame = 6;
+}
+
+// Report for detected maneuvers
+message ManeuverReport {
+  string timestamp = 1;
+  double residual_km = 2;
+  double delta_v_estimate_m_s = 3;
+  string description = 4;
+}
+
+// Response for maneuver detection
+message ManeuverDetectionResponse {
+  repeated ManeuverReport maneuvers = 1;
+  string frame = 3;
+}

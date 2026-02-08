@@ -1,0 +1,104 @@
+syntax = "proto3";
+
+package tlefitting;
+
+option java_multiple_files = true;
+option java_package = "tr.com.kadiraydemir.orekit.grpc";
+option java_outer_classname = "TleFittingServiceProto";
+
+// Service for fitting TLEs to observed measurements using least squares estimation
+service TleFittingService {
+  // Fit a TLE to a set of position measurements
+  rpc FitTLE (FitTLERequest) returns (FitTLEResponse) {}
+}
+
+// A single position measurement with associated metadata
+message PositionMeasurement {
+  // Timestamp of the measurement in ISO-8601 format (e.g., "2024-01-01T12:00:00Z")
+  string timestamp = 1;
+
+  // X position in meters (TEME frame)
+  double position_x = 2;
+
+  // Y position in meters (TEME frame)
+  double position_y = 3;
+
+  // Z position in meters (TEME frame)
+  double position_z = 4;
+
+  // Measurement weight (higher = more trusted, default: 1.0)
+  double weight = 5;
+
+  // Measurement sigma/uncertainty in meters (default: 1000.0)
+  double sigma = 6;
+}
+
+// Reference frame for input measurements
+enum InputReferenceFrame {
+  TEME_FRAME = 0;   // True Equator Mean Equinox (native SGP4 frame)
+  GCRF_FRAME = 1;   // Geocentric Celestial Reference Frame
+  EME2000_FRAME = 2; // Earth Mean Equator and Equinox of J2000
+  ITRF_FRAME = 3;   // International Terrestrial Reference Frame (Earth-fixed)
+}
+
+// Request to fit a TLE to measurements
+message FitTLERequest {
+  // Optional: Initial TLE to use as starting point (SGP4 template)
+  // If not provided, a default TLE will be generated
+  string initial_tle_line1 = 1;
+  string initial_tle_line2 = 2;
+
+  // Satellite name (for reference, included in fitted TLE)
+  string satellite_name = 3;
+
+  // Satellite catalog number (5 digits, e.g., 25544)
+  int32 satellite_number = 4;
+
+  // International designator (e.g., "1998-067A")
+  string international_designator = 5;
+
+  // List of position measurements to fit against
+  repeated PositionMeasurement measurements = 6;
+
+  // Convergence threshold (default: 1.0e-3)
+  double convergence_threshold = 7;
+
+  // Maximum iterations for the optimizer (default: 25)
+  int32 max_iterations = 8;
+
+  // Frame of the input measurements (default: TEME)
+  InputReferenceFrame input_frame = 9;
+}
+
+// Fitting result statistics
+message FitStatistics {
+  // Root Mean Square of residuals (meters)
+  double rms = 1;
+
+  // Number of iterations performed
+  int32 iterations = 2;
+
+  // Whether the fit converged successfully
+  bool converged = 3;
+
+  // Number of evaluations performed
+  int32 evaluations = 4;
+}
+
+// Response containing the fitted TLE and statistics
+message FitTLEResponse {
+  // Fitted TLE Line 1 (69 characters)
+  string fitted_tle_line1 = 1;
+
+  // Fitted TLE Line 2 (69 characters)
+  string fitted_tle_line2 = 2;
+
+  // Satellite name
+  string satellite_name = 3;
+
+  // Fitting statistics
+  FitStatistics statistics = 4;
+
+  // Error message if fitting failed
+  string error = 5;
+}

@@ -9,6 +9,7 @@ The API consists of four main services:
 2.  **CoordinateTransformService**: Transforms coordinates between reference frames.
 3.  **EclipseService**: Calculates satellite eclipse intervals.
 4.  **VisibilityService**: Calculates access intervals between satellites and ground stations.
+5.  **ManeuverService**: High-fidelity orbit analysis with maneuver detection.
 
 ---
 
@@ -138,7 +139,6 @@ Defined in `eclipse_service.proto`.
 }
 ```
 
----
 
 ## 4. `VisibilityService`
 
@@ -182,6 +182,57 @@ Defined in `visibility_service.proto`.
       "duration_seconds": 600.0
     }
   ]
+}
+```
+
+---
+
+## 5. `ManeuverService`
+
+Defined in `maneuver_service.proto`.
+
+### Methods
+
+| Method | Description |
+| :--- | :--- |
+| `DetectManeuvers` | Performs high-fidelity numerical propagation to detect maneuvers by comparing with observed TLEs. |
+
+### Example: `DetectManeuvers`
+
+**Request (`ManeuverDetectionRequest`)**
+```json
+{
+  "initial_tle": {
+    "tle_line1": "1 25544U 98067A   24001.00000000  .00016717  00000-0  10270-3 0  9991",
+    "tle_line2": "2 25544  51.6444  20.0000 0005000  0.0000  50.0000 15.50000000 10005"
+  },
+  "observed_tles": [
+    {
+      "tle_line1": "1 25544U 98067A   24001.50000000  .00016717  00000-0  10270-3 0  9991",
+      "tle_line2": "2 25544  51.6444  20.0000 0005000  0.0000  50.0000 15.50000000 10005"
+    }
+  ],
+  "config": {
+    "gravity_degree": 10,
+    "gravity_order": 10
+  },
+  "maneuver_threshold_km": 2.0,
+  "output_frame": "TEME"
+}
+```
+
+**Response (`ManeuverDetectionResponse`)**
+```json
+{
+  "maneuvers": [
+    {
+      "timestamp": "2024-01-01T12:00:00Z",
+      "residual_km": 2.5,
+      "delta_v_estimate_m_s": 0.5,
+      "description": "Maneuver detected at 2024-01-01T12:00:00Z: position residual = 2.50 km, estimated delta-V = 0.50 m/s"
+    }
+  ],
+  "frame": "TEME"
 }
 ```
 
@@ -493,5 +544,65 @@ message AccessInterval {
     string start_iso = 1;
     string end_iso = 2;
     double duration_seconds = 3;
+}
+```
+### `maneuver_service.proto`
+
+```protobuf
+syntax = "proto3";
+
+package maneuver;
+
+option java_multiple_files = true;
+option java_package = "tr.com.kadiraydemir.orekit.grpc.maneuver";
+option java_outer_classname = "ManeuverServiceProto";
+
+// Reference frame for output coordinates
+enum ReferenceFrame {
+  TEME = 0;   // True Equator Mean Equinox (default, native SGP4/SDP4 frame)
+  GCRF = 1;   // Geocentric Celestial Reference Frame
+  EME2000 = 2; // Earth Mean Equator and Equinox of J2000
+  ITRF = 3;   // International Terrestrial Reference Frame (Earth-fixed)
+}
+
+service ManeuverService {
+  // High-fidelity orbit analysis with maneuver detection
+  rpc DetectManeuvers (ManeuverDetectionRequest) returns (ManeuverDetectionResponse) {}
+}
+
+message TLELines {
+  string tle_line1 = 1;
+  string tle_line2 = 2;
+}
+
+// Force model configuration for numerical propagation
+message ForceModelConfig {
+  int32 gravity_degree = 1;
+  int32 gravity_order = 2;
+  bool solar_radiation_pressure = 3;
+  bool atmospheric_drag = 4;
+}
+
+// Request for maneuver detection
+message ManeuverDetectionRequest {
+  TLELines initial_tle = 1;
+  repeated TLELines observed_tles = 2;
+  ForceModelConfig config = 3;
+  double maneuver_threshold_km = 4;
+  ReferenceFrame output_frame = 6;
+}
+
+// Report for detected maneuvers
+message ManeuverReport {
+  string timestamp = 1;
+  double residual_km = 2;
+  double delta_v_estimate_m_s = 3;
+  string description = 4;
+}
+
+// Response for maneuver detection
+message ManeuverDetectionResponse {
+  repeated ManeuverReport maneuvers = 1;
+  string frame = 3;
 }
 ```

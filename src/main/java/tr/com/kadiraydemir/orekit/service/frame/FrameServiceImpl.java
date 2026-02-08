@@ -6,6 +6,7 @@ import org.orekit.bodies.OneAxisEllipsoid;
 import org.orekit.frames.Frame;
 import org.orekit.frames.FramesFactory;
 import org.orekit.frames.TopocentricFrame;
+import org.hipparchus.util.FastMath;
 import org.orekit.utils.Constants;
 import org.orekit.utils.IERSConventions;
 import tr.com.kadiraydemir.orekit.model.ReferenceFrameType;
@@ -44,8 +45,8 @@ public class FrameServiceImpl implements FrameService {
                 itrf);
 
         GeodeticPoint point = new GeodeticPoint(
-                java.lang.Math.toRadians(latitude),
-                java.lang.Math.toRadians(longitude),
+                FastMath.toRadians(latitude),
+                FastMath.toRadians(longitude),
                 altitude);
 
         return new TopocentricFrame(earth, point, name);

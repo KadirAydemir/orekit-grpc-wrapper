@@ -12,6 +12,7 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
+import org.hipparchus.util.FastMath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tr.com.kadiraydemir.orekit.grpc.*;
@@ -60,8 +61,8 @@ public class VisibilityGrpcService extends VisibilityServiceGrpc.VisibilityServi
         
         // Dynamic batch sizing: larger date ranges and lower elevation angles = smaller batches
         // Visibility results can have many intervals, so we use smaller base batches
-        double minElevationFactor = Math.max(0.5, request.getMinElevationDegrees() / 10.0);
-        int batchSize = (int) Math.min(300, Math.max(30, (300 / Math.max(1, dateRangeDays / 5)) * minElevationFactor));
+        double minElevationFactor = FastMath.max(0.5, request.getMinElevationDegrees() / 10.0);
+        int batchSize = (int) FastMath.min(300, FastMath.max(30, (300 / FastMath.max(1, dateRangeDays / 5)) * minElevationFactor));
         
         log.info("Dynamic batch size calculated: {} (Date range: {} days, Min elevation: {}°)", 
                 batchSize, dateRangeDays, request.getMinElevationDegrees());

@@ -12,6 +12,7 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
+import org.hipparchus.util.FastMath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tr.com.kadiraydemir.orekit.grpc.*;
@@ -61,7 +62,7 @@ public class EclipseGrpcService extends EclipseServiceGrpc.EclipseServiceImplBas
         // Dynamic batch sizing: larger date ranges = smaller batches
         // Eclipse results are small (just intervals), so we can use larger batches
         // Base batch size: 500, reduce for longer durations
-        int batchSize = (int) Math.min(500, Math.max(50, 500 / Math.max(1, dateRangeDays / 7)));
+        int batchSize = (int) FastMath.min(500, FastMath.max(50, 500 / FastMath.max(1, dateRangeDays / 7)));
         
         log.info("Dynamic batch size calculated: {} (Date range: {} days)", batchSize, dateRangeDays);
 
