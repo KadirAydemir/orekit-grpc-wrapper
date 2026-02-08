@@ -162,4 +162,32 @@ ExecutorService propagationExecutor;
 - Avoid direct double equality comparisons
 - Prefer tolerance-based comparisons
 - Time calculations must be explicit about units
-```
+
+## Records vs Classes
+
+| Use Case | Type | Example |
+|----------|------|---------|
+| API Request/Response | `record` | `PropagateRequest`, `EclipseResult` |
+| Configuration DTOs | `record` | `PropagationConfig` |
+| Domain models with logic | `class` | `OrbitPropagator`, `SatelliteTracker` |
+| Stateful services | `class` | `PropagationService` |
+| Value objects (immutable) | `record` | `OrbitalElements`, `Coordinates` |
+
+## MapStruct Best Practices
+
+1. One mapper per domain (e.g., `PropagationMapper`, `EclipseMapper`)
+2. Use component model `jakarta` for CDI injection
+3. Define collection mappings explicitly: `List<X> mapList(List<Y>)`
+4. Use `@NullValueCheckStrategy.ALWAYS` for null handling
+5. Use `@Default` for primitive default values
+
+## Code Review Checklist
+
+- [ ] No wildcard imports
+- [ ] Service layer doesn't import gRPC classes
+- [ ] MapStruct used for all conversions
+- [ ] Methods under 30 lines
+- [ ] Meaningful variable names (no `tmp`, `x`, `data`)
+- [ ] Proper exception types (not generic `Exception`)
+- [ ] Immutable DTOs use `record`
+

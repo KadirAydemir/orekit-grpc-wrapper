@@ -174,3 +174,68 @@ jmap -dump:format=b,file=heap.hprof <pid>
 1. Ensure package-private field injection (not constructor)
 2. Run with: `./mvnw clean verify`
 3. Check report: `target/site/jacoco/index.html`
+
+## Test Patterns
+
+### Test Data Builders
+```java
+public class TestDataBuilders {
+    public static TleBuilder aTle() { return new TleBuilder(); }
+    
+    public static class TleBuilder {
+        private String line1 = "1 25544U 98067A...";
+        private String line2 = "2 25544  51.6400...";
+        
+        public TleBuilder withSatelliteId(int id) { return this; }
+        public TLE build() { return new TLE(line1, line2); }
+    }
+}
+
+// Usage
+TLE tle = TestDataBuilders.aTle().withSatelliteId(12345).build();
+```
+
+### Async Testing
+```java
+// Uni (single result)
+PropagateResult value = service.propagate(request)
+    .await().atMost(Duration.ofSeconds(5));
+
+// Multi (stream)
+List<OrbitPoint> results = service.propagateStream(request)
+    .collect().asList()
+    .await().atMost(Duration.ofSeconds(10));
+```
+
+### Test Isolation
+```java
+@BeforeEach
+public void setUp() {
+    OrekitDataCache.clear();
+    Mockito.reset(tleProvider);
+}
+```
+
+## Testing Anti-Patterns
+
+### Don't: Mock the class under test
+```java
+@Mock
+PropagationService propagationService; // WRONG - testing a mock!
+```
+
+### Do: Mock external dependencies only
+```java
+@Inject PropagationService propagationService; // Real service
+@Mock ExternalTleProvider tleProvider; // External dependency
+```
+
+## Coverage Targets
+
+| Layer | Minimum Coverage |
+|-------|-----------------|
+| Service Layer | 80% |
+| gRPC Layer | 60% |
+| Mappers | 90% |
+| Utilities | 70% |
+| Config | 50% |

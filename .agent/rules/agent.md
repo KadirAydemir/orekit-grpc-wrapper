@@ -33,3 +33,17 @@ Use `view_file` on these files for specific implementation details:
 - **Minimal Diffs Only**: Do not reformat files unless asked.
 - **Documentation**: Update `API_DOC.md` IMMEDIATELY if `.proto` files change.
 - **Ambiguity**: STOP and ask if requirements are unclear.
+
+## Development Workflow
+
+### Starting a New Feature
+1. Check existing patterns in similar services
+2. Define proto first (API contract before implementation)
+3. All gRPC service methods must use `@RunOnVirtualThread`
+4. Write `@QuarkusTest` before implementation is complete
+
+### Common Patterns
+- Single item operation: Return result directly
+- Batch operation: Use streaming with error field in response
+- Time ranges: Always use `Instant` (protobuf `Timestamp`) with explicit time zones
+- Resource cleanup: Use try-with-resources for Orekit propagators

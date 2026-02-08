@@ -151,3 +151,49 @@ boolean valid = TleUtils.isValidTle(line1, line2);
 
 // Never parse TLE manually in service classes
 ```
+
+## Proto Design Guidelines
+
+### Field Numbering
+```protobuf
+// Ranges: 1-10 (IDs), 11-20 (params), 21-30 (config), 90-99 (metadata)
+message PropagateRequest {
+  string satellite_id = 1;
+  double start_time_jd = 11;
+  bool include_velocity = 21;
+  string request_id = 90;
+}
+```
+
+### Error Handling
+```java
+// INVALID_ARGUMENT - bad TLE, invalid date range
+// NOT_FOUND - unknown satellite ID
+// INTERNAL - Orekit initialization failed
+// RESOURCE_EXHAUSTED - rate limiting
+throw Status.NOT_FOUND.withDescription("Satellite not found").asRuntimeException();
+```
+
+### gRPC Patterns
+
+| Pattern | Use When | Example |
+|---------|----------|---------|
+| Unary | Single request/response | `GetSatelliteInfo` |
+| Server Streaming | Large response | `BatchCalculateEclipses` |
+| Client Streaming | Large request | `UploadTLECatalog` |
+| Bidirectional | Real-time stream | `LiveTrackingStream` |
+
+### Performance Guidelines
+
+| Operation | Optimal Batch Size |
+|-----------|-------------------|
+| TLE propagation | 200-500 items |
+| Eclipse calculation | 50-100 items |
+| Access calculations | 100-200 items |
+| Database operations | 500-1000 items |
+
+### Security
+- Never log protos containing orbital data
+- Sanitize satellite names in error messages
+- Validate all IDs before database lookups
+- Rate limit expensive operations
