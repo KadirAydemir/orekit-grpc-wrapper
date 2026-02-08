@@ -91,11 +91,15 @@ message TLELines {
   string tle_line2 = 2;
 }
 
-message BatchTLEPropagateResponse {
+message TLEPropagationResult {
   int32 satellite_id = 1;
   repeated PositionPoint positions = 2;
   string frame = 3;
   string error = 4;
+}
+
+message BatchTLEPropagateResponse {
+  repeated TLEPropagationResult results = 1;
 }
 
 message BatchTLEPropagateRequest {

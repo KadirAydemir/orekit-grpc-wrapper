@@ -69,4 +69,41 @@ public class PropagationGrpcServiceTest {
                                                 + response.getPosZ());
         }
 
+        @Test
+        public void testBatchPropagateTLE() {
+                // Create 250 dummy TLEs
+                java.util.List<TLELines> tles = new java.util.ArrayList<>();
+                for (int i = 0; i < 250; i++) {
+                        tles.add(TLELines.newBuilder()
+                                        .setTleLine1("1 " + (10000 + i)
+                                                        + "U 98067A   24001.00000000  .00016717  00000-0  10270-3 0  9991")
+                                        .setTleLine2("2 " + (10000 + i)
+                                                        + "  51.6444  20.0000 0005000  0.0000  50.0000 15.50000000 10005")
+                                        .build());
+                }
+
+                BatchTLEPropagateRequest request = BatchTLEPropagateRequest.newBuilder()
+                                .addAllTles(tles)
+                                .setStartDate("2024-01-01T12:00:00Z")
+                                .setEndDate("2024-01-01T13:00:00Z")
+                                .setPositionCount(1)
+                                .setOutputFrame(ReferenceFrame.TEME)
+                                .build();
+
+                List<BatchTLEPropagateResponse> responses = orbitalService.batchPropagateTLE(request)
+                                .collect().asList()
+                                .await().atMost(Duration.ofSeconds(60));
+
+                Assertions.assertNotNull(responses);
+                Assertions.assertFalse(responses.isEmpty());
+
+                int totalResults = 0;
+                for (BatchTLEPropagateResponse response : responses) {
+                        Assertions.assertTrue(response.getResultsCount() <= 100,
+                                        "Batch size should be <= 100 but was " + response.getResultsCount());
+                        totalResults += response.getResultsCount();
+                }
+                Assertions.assertEquals(250, totalResults);
+        }
+
 }
