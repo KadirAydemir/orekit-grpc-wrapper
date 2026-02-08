@@ -1,13 +1,20 @@
 package tr.com.kadiraydemir.orekit.config;
 
 import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.orekit.data.DataContext;
+import org.orekit.data.DataProvidersManager;
+import org.orekit.data.DataProvider;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -17,6 +24,23 @@ public class OrekitConfigTest {
 
     @TempDir
     Path tempDir;
+
+    private List<DataProvider> originalProviders;
+
+    @BeforeEach
+    public void setUp() {
+        DataProvidersManager manager = DataContext.getDefault().getDataProvidersManager();
+        originalProviders = new ArrayList<>(manager.getProviders());
+    }
+
+    @AfterEach
+    public void tearDown() {
+        DataProvidersManager manager = DataContext.getDefault().getDataProvidersManager();
+        manager.clearProviders();
+        for (DataProvider provider : originalProviders) {
+            manager.addProvider(provider);
+        }
+    }
 
     @Test
     @DisplayName("Should initialize with ZIP file successfully")
