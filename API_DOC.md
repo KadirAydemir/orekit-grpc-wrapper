@@ -22,7 +22,7 @@ Defined in `orbital_service.proto`.
 | :--- | :--- |
 | `Propagate` | Propagates a single state vector to a target duration. |
 | `PropagateTLE` | Propagates a single TLE over a time range (Streaming). |
-| `PropagateTLEList` | Bulk propagation of multiple TLEs (Streaming). |
+| `BatchPropagateTLE` | Bulk propagation of multiple TLEs (Streaming). |
 
 ### Example: `PropagateTLE`
 
@@ -60,6 +60,7 @@ Defined in `coordinate_transform_service.proto`.
 | Method | Description |
 | :--- | :--- |
 | `Transform` | Transforms position and velocity vectors from a source frame to a target frame. |
+| `BatchTransform` | Transforms multiple position and velocity vectors (Streaming). |
 
 ### Example: `Transform`
 
@@ -104,6 +105,7 @@ Defined in `eclipse_service.proto`.
 | Method | Description |
 | :--- | :--- |
 | `CalculateEclipses` | Calculates eclipse intervals for a satellite within a given date range. |
+| `BatchCalculateEclipses` | Calculates eclipse intervals for multiple satellites (Streaming). |
 
 ### Example: `CalculateEclipses`
 
@@ -120,7 +122,7 @@ Defined in `eclipse_service.proto`.
 **Response (`EclipseResponse`)**
 ```json
 {
-  "satellite_name": "ISS (ZARYA)",
+  "norad_id": 25544,
   "intervals": [
     {
       "start_iso": "2024-01-01T00:30:00Z",
@@ -147,6 +149,7 @@ Defined in `visibility_service.proto`.
 | Method | Description |
 | :--- | :--- |
 | `GetAccessIntervals` | Computes visibility (access) intervals between a TLE-defined satellite and a ground station. |
+| `BatchGetAccessIntervals` | Computes visibility intervals for multiple satellites (Streaming). |
 
 ### Example: `GetAccessIntervals`
 
@@ -187,7 +190,7 @@ Defined in `visibility_service.proto`.
 # Appendix: Protobuf Definitions
 
 **Dependencies:**
-- `coordinate_transform_service.proto` and `visibility_service.proto` import `orbital_service.proto`.
+- `coordinate_transform_service.proto`, `eclipse_service.proto`, and `visibility_service.proto` import or rely on definitions in common (though currently mainly `coordinate_transform_service` and `visibility_service` import `orbital_service.proto`).
 - Ensure all files are in the same directory (or configure your proto path accordingly) when generating code.
 - Package name: `orbital`
 - Java Package: `tr.com.kadiraydemir.orekit.grpc`
@@ -232,8 +235,8 @@ enum ReferenceFrame {
 service OrbitalService {
   rpc Propagate (PropagateRequest) returns (PropagateResponse) {}
   rpc PropagateTLE (TLEPropagateRequest) returns (stream TLEPropagateResponse) {}
-  // Bulk Input -> Stream Output
-  rpc PropagateTLEList (TLEListRequest) returns (stream TLEListResponse) {}
+  // Batch Input -> Stream Output
+  rpc BatchPropagateTLE (BatchTLEPropagateRequest) returns (stream BatchTLEPropagateResponse) {}
 }
 
 message PropagateRequest {
@@ -288,14 +291,14 @@ message TLELines {
   string tle_line2 = 2;
 }
 
-message TLEListResponse {
+message BatchTLEPropagateResponse {
   int32 satellite_id = 1;
   repeated PositionPoint positions = 2;
   string frame = 3;
   string error = 4;
 }
 
-message TLEListRequest {
+message BatchTLEPropagateRequest {
   PropagationModel model = 1;
   string start_date = 2; // ISO-8601
   string end_date = 3; // ISO-8601
@@ -322,6 +325,9 @@ option java_outer_classname = "CoordinateTransformServiceProto";
 service CoordinateTransformService {
     // Transform coordinates from one frame to another
     rpc Transform (TransformRequest) returns (TransformResponse) {}
+
+    // Transform multiple coordinates (streaming response)
+    rpc BatchTransform (BatchTransformRequest) returns (stream TransformResponse) {}
 }
 
 message TransformRequest {
@@ -338,6 +344,25 @@ message TransformRequest {
     double vz = 9;
 }
 
+message BatchTransformRequest {
+    ReferenceFrame source_frame = 1;
+    ReferenceFrame target_frame = 2;
+    // Multiple state vectors to transform (all at the same epoch)
+    repeated StateVector state_vectors = 3;
+    string epoch_iso = 4;
+}
+
+message StateVector {
+    // Position in source frame
+    double x = 1;
+    double y = 2;
+    double z = 3;
+    // Velocity in source frame
+    double vx = 4;
+    double vy = 5;
+    double vz = 6;
+}
+
 message TransformResponse {
     ReferenceFrame source_frame = 1;
     ReferenceFrame target_frame = 2;
@@ -350,6 +375,8 @@ message TransformResponse {
     double vx = 7;
     double vy = 8;
     double vz = 9;
+    // Error message for partial failures - empty if successful
+    string error = 10;
 }
 ```
 
@@ -367,6 +394,9 @@ option java_outer_classname = "EclipseServiceProto";
 service EclipseService {
   // Calculate eclipse intervals for a satellite
   rpc CalculateEclipses (EclipseRequest) returns (EclipseResponse) {}
+
+  // Calculate eclipse intervals for multiple satellites (streaming response)
+  rpc BatchCalculateEclipses (BatchEclipseRequest) returns (stream EclipseResponse) {}
 }
 
 message EclipseRequest {
@@ -376,9 +406,24 @@ message EclipseRequest {
   string end_date_iso = 4;
 }
 
+message BatchEclipseRequest {
+  // Multiple TLEs to process
+  repeated TLEPair tles = 1;
+  // Common date range for all satellites
+  string start_date_iso = 2;
+  string end_date_iso = 3;
+}
+
+message TLEPair {
+  string line1 = 1;
+  string line2 = 2;
+}
+
 message EclipseResponse {
-    string satellite_name = 1;
+    int32 norad_id = 1;
     repeated EclipseInterval intervals = 2;
+    // Error message for partial failures - empty if successful
+    string error = 3;
 }
 
 message EclipseInterval {
@@ -404,6 +449,9 @@ option java_outer_classname = "VisibilityServiceProto";
 service VisibilityService {
     // Calculate access intervals between a satellite and a ground station
     rpc GetAccessIntervals (AccessIntervalsRequest) returns (AccessIntervalsResponse) {}
+
+    // Calculate access intervals for multiple satellites (streaming response)
+    rpc BatchGetAccessIntervals (BatchAccessIntervalsRequest) returns (stream AccessIntervalsResponse) {}
 }
 
 message AccessIntervalsRequest {
@@ -422,10 +470,23 @@ message GroundStation {
     string name = 4;
 }
 
+message BatchAccessIntervalsRequest {
+    // Multiple TLEs to process
+    repeated TLELines tles = 1;
+    // Common ground station for all satellites
+    GroundStation ground_station = 2;
+    // Common date range for all satellites
+    string start_date_iso = 3;
+    string end_date_iso = 4;
+    double min_elevation_degrees = 5;
+}
+
 message AccessIntervalsResponse {
     string satellite_name = 1;
     string station_name = 2;
     repeated AccessInterval intervals = 3;
+    // Error message for partial failures - empty if successful
+    string error = 4;
 }
 
 message AccessInterval {
